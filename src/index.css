@@ -1,57 +1,58 @@
 @import "maplibre-gl/dist/maplibre-gl.css";
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 220 20% 10%;
-    --foreground: 200 20% 90%;
+    /* GentleCalm UI — Soft Pastel Minimalism */
+    --background: 36 33% 97%;        /* #FAF8F4 */
+    --foreground: 0 0% 12%;           /* #1F1F1F */
 
-    --card: 220 18% 14%;
-    --card-foreground: 200 20% 90%;
+    --card: 33 24% 95%;               /* #F6F3EF */
+    --card-foreground: 0 0% 12%;
 
-    --popover: 220 18% 14%;
-    --popover-foreground: 200 20% 90%;
+    --popover: 33 24% 95%;
+    --popover-foreground: 0 0% 12%;
 
-    --primary: 185 80% 50%;
-    --primary-foreground: 220 20% 8%;
+    --primary: 160 38% 73%;           /* #9ED9C6 menthe */
+    --primary-foreground: 0 0% 12%;
 
-    --secondary: 220 15% 20%;
-    --secondary-foreground: 200 20% 85%;
+    --secondary: 36 33% 97%;
+    --secondary-foreground: 0 0% 42%; /* #6B6B6B */
 
-    --muted: 220 15% 18%;
-    --muted-foreground: 200 10% 55%;
+    --muted: 33 20% 93%;
+    --muted-foreground: 0 0% 42%;     /* #6B6B6B */
 
-    --accent: 35 90% 55%;
-    --accent-foreground: 220 20% 8%;
+    --accent: 37 100% 68%;            /* #FFCB5E jaune soleil */
+    --accent-foreground: 0 0% 12%;
 
-    --destructive: 0 70% 50%;
+    --destructive: 15 100% 71%;       /* #FF9A6B orange brûlé */
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 15% 22%;
-    --input: 220 15% 22%;
-    --ring: 185 80% 50%;
+    --border: 30 18% 91%;             /* #EDE9E3 */
+    --input: 30 18% 91%;
+    --ring: 160 38% 73%;
 
-    --radius: 0.75rem;
+    --radius: 1.25rem;
 
-    --sidebar-background: 220 18% 12%;
-    --sidebar-foreground: 200 20% 90%;
-    --sidebar-primary: 185 80% 50%;
-    --sidebar-primary-foreground: 220 20% 8%;
-    --sidebar-accent: 220 15% 20%;
-    --sidebar-accent-foreground: 200 20% 85%;
-    --sidebar-border: 220 15% 22%;
-    --sidebar-ring: 185 80% 50%;
+    /* Custom weather accents */
+    --weather-sun: 37 100% 68%;       /* #FFCB5E */
+    --weather-mint: 160 38% 73%;      /* #9ED9C6 */
+    --weather-orange: 15 100% 71%;    /* #FF9A6B */
+    --weather-lime: 88 65% 63%;       /* #A8E05E */
 
-    /* Custom tokens */
-    --nav-glow: 185 80% 50%;
-    --weather-warm: 35 90% 55%;
-    --weather-cold: 210 70% 55%;
-    --weather-rain: 200 60% 45%;
-    --glass-bg: 220 18% 14% / 0.85;
-    --glass-border: 200 20% 90% / 0.08;
+    --sidebar-background: 33 24% 95%;
+    --sidebar-foreground: 0 0% 12%;
+    --sidebar-primary: 160 38% 73%;
+    --sidebar-primary-foreground: 0 0% 12%;
+    --sidebar-accent: 37 100% 68%;
+    --sidebar-accent-foreground: 0 0% 12%;
+    --sidebar-border: 30 18% 91%;
+    --sidebar-ring: 160 38% 73%;
   }
 }
 
@@ -61,21 +62,46 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+    font-family: 'Inter', system-ui, sans-serif;
   }
 }
 
 @layer utilities {
-  .glass-panel {
-    background: hsla(var(--glass-bg));
-    border: 1px solid hsla(var(--glass-border));
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+  .float-card {
+    background: hsl(var(--card));
+    border-radius: 28px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.04), 0 1px 6px rgba(0,0,0,0.02);
   }
-  .glow-text {
-    text-shadow: 0 0 20px hsl(var(--nav-glow) / 0.4);
+  .float-card-sm {
+    background: hsl(var(--card));
+    border-radius: 20px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.04), 0 1px 4px rgba(0,0,0,0.02);
   }
-  .glow-border {
-    box-shadow: 0 0 15px hsl(var(--nav-glow) / 0.15), inset 0 0 15px hsl(var(--nav-glow) / 0.05);
+  .gentle-separator {
+    border-color: hsl(var(--border));
+  }
+  .accent-mint {
+    color: hsl(var(--weather-mint));
+  }
+  .accent-sun {
+    color: hsl(var(--weather-sun));
+  }
+  .bg-accent-mint {
+    background-color: hsl(var(--weather-mint));
+  }
+  .bg-accent-sun {
+    background-color: hsl(var(--weather-sun));
+  }
+  .bg-accent-orange {
+    background-color: hsl(var(--weather-orange));
+  }
+  .bg-accent-lime {
+    background-color: hsl(var(--weather-lime));
+  }
+  .impact-number {
+    font-size: 3rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.02em;
   }
 }
