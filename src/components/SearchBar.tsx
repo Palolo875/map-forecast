@@ -34,11 +34,17 @@ const SearchBar = ({ onSelect }: SearchBarProps) => {
   const search = (q: string) => {
     setQuery(q);
     if (timerRef.current) clearTimeout(timerRef.current);
-    if (q.length < 2) { setResults([]); setOpen(false); return; }
+    if (q.length < 2) {
+      setResults([]);
+      setOpen(false);
+      return;
+    }
 
     timerRef.current = setTimeout(async () => {
       try {
-        const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=5&lang=fr`);
+        const res = await fetch(
+          `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=5&lang=fr`
+        );
         const data = await res.json();
         const mapped: SearchResult[] = data.features.map((f: any) => ({
           name: f.properties.name || "",
@@ -64,33 +70,36 @@ const SearchBar = ({ onSelect }: SearchBarProps) => {
   };
 
   return (
-    <div ref={containerRef} className="relative w-full max-w-md">
-      <div className="glass-panel glow-border flex items-center gap-2 rounded-lg px-3 py-2">
-        <Search className="h-4 w-4 text-primary shrink-0" />
+    <div ref={containerRef} className="relative w-full max-w-sm">
+      <div className="float-card-sm flex items-center gap-3 px-5 py-3">
+        <Search className="h-[18px] w-[18px] text-muted-foreground" strokeWidth={1.5} />
         <input
           value={query}
           onChange={(e) => search(e.target.value)}
           placeholder="Rechercher un lieu..."
-          className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none font-mono"
+          className="flex-1 bg-transparent text-[15px] text-foreground placeholder:text-muted-foreground outline-none"
         />
         {query && (
-          <button onClick={() => { setQuery(""); setResults([]); setOpen(false); }} className="text-muted-foreground hover:text-foreground">
-            <X className="h-4 w-4" />
+          <button
+            onClick={() => { setQuery(""); setResults([]); setOpen(false); }}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <X className="h-4 w-4" strokeWidth={1.5} />
           </button>
         )}
       </div>
 
       {open && (
-        <div className="absolute top-full left-0 right-0 mt-1 glass-panel rounded-lg overflow-hidden z-50 animate-slide-up">
+        <div className="absolute top-full left-0 right-0 mt-2 float-card-sm overflow-hidden z-50 animate-float-in">
           {results.map((r, i) => (
             <button
               key={i}
               onClick={() => handleSelect(r)}
-              className="flex items-center gap-2 w-full px-3 py-2.5 text-left text-sm hover:bg-secondary/50 transition-colors"
+              className="flex items-center gap-3 w-full px-5 py-3 text-left text-[15px] hover:bg-muted/50 transition-colors"
             >
-              <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
+              <MapPin className="h-4 w-4 text-primary shrink-0" strokeWidth={1.5} />
               <span className="truncate">
-                <span className="text-foreground">{r.name}</span>
+                <span className="text-foreground font-medium">{r.name}</span>
                 {r.city && <span className="text-muted-foreground"> · {r.city}</span>}
                 {r.country && <span className="text-muted-foreground"> · {r.country}</span>}
               </span>
