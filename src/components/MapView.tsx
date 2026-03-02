@@ -8,11 +8,26 @@ interface MapViewProps {
   pois?: Poi[];
   onPoiSelect?: (poi: Poi) => void;
   selectedPoiId?: string | null;
+  routeLine?: GeoJSON.LineString | null;
+  routeSegments?: GeoJSON.FeatureCollection<GeoJSON.LineString, { color?: string }> | null;
+  fitToRoute?: boolean;
 }
 
 const GENTLE_MAP_STYLE = "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
 
-const MapView = ({ onMapClick, flyTo, pois, onPoiSelect, selectedPoiId }: MapViewProps) => {
+const ROUTE_SOURCE_ID = "route";
+const ROUTE_LAYER_ID = "route-line";
+
+const MapView = ({
+  onMapClick,
+  flyTo,
+  pois,
+  onPoiSelect,
+  selectedPoiId,
+  routeLine,
+  routeSegments,
+  fitToRoute,
+}: MapViewProps) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markerRef = useRef<maplibregl.Marker | null>(null);
@@ -68,6 +83,88 @@ const MapView = ({ onMapClick, flyTo, pois, onPoiSelect, selectedPoiId }: MapVie
     return () => map.remove();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!mapRef.current || !ready) return;
+    const map = mapRef.current;
+
+    const existing = map.getSource(ROUTE_SOURCE_ID);
+    if (!existing) {
+      map.addSource(ROUTE_SOURCE_ID, {
+        type: "geojson",
+        data:
+          routeSegments ??
+          ({
+            type: "Feature",
+            properties: {},
+            geometry: routeLine ?? { type: "LineString", coordinates: [] },
+          } as GeoJSON.Feature<GeoJSON.LineString>),
+      });
+
+      map.addLayer({
+        id: ROUTE_LAYER_ID,
+        type: "line",
+        source: ROUTE_SOURCE_ID,
+        layout: {
+          "line-join": "round",
+          "line-cap": "round",
+        },
+        paint: {
+          "line-color": ["coalesce", ["get", "color"], "#0EA5E9"],
+          "line-width": 5,
+          "line-opacity": 0.9,
+        },
+      });
+    }
+  }, [ready, routeLine, routeSegments]);
+
+  useEffect(() => {
+    if (!mapRef.current || !ready) return;
+    const map = mapRef.current;
+    const src = map.getSource(ROUTE_SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
+    if (!src) return;
+
+    if (routeSegments) {
+      src.setData(routeSegments);
+    } else {
+      src.setData({
+        type: "Feature",
+        properties: {},
+        geometry: routeLine ?? { type: "LineString", coordinates: [] },
+      });
+    }
+
+    if (!fitToRoute) return;
+
+    let coords: Array<[number, number]> = [];
+    if (routeSegments?.features?.length) {
+      coords = routeSegments.features.flatMap((f) => (f.geometry?.coordinates as Array<[number, number]>) ?? []);
+    } else if (routeLine?.coordinates?.length) {
+      coords = routeLine.coordinates as Array<[number, number]>;
+    }
+
+    if (coords.length < 2) return;
+
+    let minLng = Infinity;
+    let minLat = Infinity;
+    let maxLng = -Infinity;
+    let maxLat = -Infinity;
+
+    for (const [lng, lat] of coords) {
+      minLng = Math.min(minLng, lng);
+      minLat = Math.min(minLat, lat);
+      maxLng = Math.max(maxLng, lng);
+      maxLat = Math.max(maxLat, lat);
+    }
+
+    map.fitBounds(
+      [
+        [minLng, minLat],
+        [maxLng, maxLat],
+      ],
+      { padding: 70, duration: 900 }
+    );
+  }, [fitToRoute, ready, routeLine, routeSegments]);
 
   useEffect(() => {
     if (!flyTo || !mapRef.current || !ready) return;
