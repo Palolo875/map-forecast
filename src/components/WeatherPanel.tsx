@@ -1,8 +1,22 @@
 import { useEffect, useState } from "react";
 import {
-  Sun, Cloud, CloudRain, CloudSnow, CloudLightning, CloudDrizzle,
-  Wind, Droplets, Eye, Thermometer, ArrowUp, ArrowDown, CloudFog, X
-} from "lucide-react";
+  HugeiconsIcon,
+  Sun03Icon,
+  CloudIcon,
+  SunCloudAngledRain01Icon,
+  SnowIcon,
+  ZapIcon,
+  RainDropIcon,
+  DropletIcon,
+  ViewIcon,
+  TemperatureIcon,
+  ArrowUp01Icon,
+  ArrowDown01Icon,
+  Cancel01Icon,
+  HumidityIcon,
+  WindTurbineIcon,
+} from "@/components/icons";
+import type { IconSvgElement } from "@/components/icons";
 
 interface WeatherData {
   temperature: number;
@@ -25,16 +39,16 @@ interface WeatherPanelProps {
   onClose: () => void;
 }
 
-const getWeatherInfo = (code: number): { label: string; Icon: typeof Sun; color: string } => {
-  if (code === 0) return { label: "Dégagé", Icon: Sun, color: "text-weather-sun" };
-  if (code <= 3) return { label: "Nuageux", Icon: Cloud, color: "text-muted-foreground" };
-  if (code <= 48) return { label: "Brouillard", Icon: CloudFog, color: "text-muted-foreground" };
-  if (code <= 57) return { label: "Bruine", Icon: CloudDrizzle, color: "text-weather-mint" };
-  if (code <= 67) return { label: "Pluie", Icon: CloudRain, color: "text-weather-mint" };
-  if (code <= 77) return { label: "Neige", Icon: CloudSnow, color: "text-weather-mint" };
-  if (code <= 82) return { label: "Averses", Icon: CloudRain, color: "text-weather-mint" };
-  if (code <= 86) return { label: "Neige", Icon: CloudSnow, color: "text-weather-mint" };
-  return { label: "Orage", Icon: CloudLightning, color: "text-weather-orange" };
+const getWeatherInfo = (code: number): { label: string; icon: IconSvgElement; color: string } => {
+  if (code === 0) return { label: "Dégagé", icon: Sun03Icon, color: "text-weather-sun" };
+  if (code <= 3) return { label: "Nuageux", icon: CloudIcon, color: "text-muted-foreground" };
+  if (code <= 48) return { label: "Brouillard", icon: CloudIcon, color: "text-muted-foreground" };
+  if (code <= 57) return { label: "Bruine", icon: RainDropIcon, color: "text-weather-mint" };
+  if (code <= 67) return { label: "Pluie", icon: SunCloudAngledRain01Icon, color: "text-weather-mint" };
+  if (code <= 77) return { label: "Neige", icon: SnowIcon, color: "text-weather-mint" };
+  if (code <= 82) return { label: "Averses", icon: SunCloudAngledRain01Icon, color: "text-weather-mint" };
+  if (code <= 86) return { label: "Neige", icon: SnowIcon, color: "text-weather-mint" };
+  return { label: "Orage", icon: ZapIcon, color: "text-weather-orange" };
 };
 
 const WeatherPanel = ({ lat, lng, locationName, onClose }: WeatherPanelProps) => {
@@ -79,7 +93,7 @@ const WeatherPanel = ({ lat, lng, locationName, onClose }: WeatherPanelProps) =>
         <div className="flex items-center justify-between mb-4">
           <div className="h-4 w-32 bg-muted rounded-full animate-pulse" />
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
-            <X className="h-4 w-4" strokeWidth={1.5} />
+            <HugeiconsIcon icon={Cancel01Icon} size={16} strokeWidth={1.5} />
           </button>
         </div>
         <div className="h-16 w-24 bg-muted rounded-2xl animate-pulse mb-4" />
@@ -94,7 +108,7 @@ const WeatherPanel = ({ lat, lng, locationName, onClose }: WeatherPanelProps) =>
 
   if (!weather) return null;
 
-  const { label, Icon, color } = getWeatherInfo(weather.weatherCode);
+  const { label, icon: weatherIcon, color } = getWeatherInfo(weather.weatherCode);
 
   const currentHour = new Date().getHours();
   const nextHours = weather.hourly.filter((h) => {
@@ -110,24 +124,24 @@ const WeatherPanel = ({ lat, lng, locationName, onClose }: WeatherPanelProps) =>
           {locationName}
         </h3>
         <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
-          <X className="h-4 w-4" strokeWidth={1.5} />
+          <HugeiconsIcon icon={Cancel01Icon} size={16} strokeWidth={1.5} />
         </button>
       </div>
       <p className="text-[13px] text-muted-foreground mb-4">{label}</p>
 
       {/* Main temp */}
       <div className="flex items-center gap-4 mb-5">
-        <Icon className={`h-10 w-10 ${color}`} strokeWidth={1.5} />
+        <HugeiconsIcon icon={weatherIcon} size={40} className={color} strokeWidth={1.5} />
         <div>
           <span className="impact-number text-foreground">{weather.temperature}°</span>
         </div>
         <div className="ml-auto text-right">
           <div className="flex items-center gap-1 text-[13px] text-muted-foreground">
-            <ArrowUp className="h-3 w-3" strokeWidth={2} />
+            <HugeiconsIcon icon={ArrowUp01Icon} size={12} strokeWidth={2} />
             <span>{weather.tempMax}°</span>
           </div>
           <div className="flex items-center gap-1 text-[13px] text-muted-foreground">
-            <ArrowDown className="h-3 w-3" strokeWidth={2} />
+            <HugeiconsIcon icon={ArrowDown01Icon} size={12} strokeWidth={2} />
             <span>{weather.tempMin}°</span>
           </div>
         </div>
@@ -135,10 +149,10 @@ const WeatherPanel = ({ lat, lng, locationName, onClose }: WeatherPanelProps) =>
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 gap-2.5 mb-5">
-        <StatCard icon={Thermometer} label="Ressenti" value={`${weather.feelsLike}°`} />
-        <StatCard icon={Droplets} label="Humidité" value={`${weather.humidity}%`} />
-        <StatCard icon={Wind} label="Vent" value={`${weather.windSpeed} km/h`} />
-        <StatCard icon={Eye} label="Précipitations" value={`${weather.precipitation} mm`} />
+        <StatCard icon={TemperatureIcon} label="Ressenti" value={`${weather.feelsLike}°`} />
+        <StatCard icon={HumidityIcon} label="Humidité" value={`${weather.humidity}%`} />
+        <StatCard icon={WindTurbineIcon} label="Vent" value={`${weather.windSpeed} km/h`} />
+        <StatCard icon={DropletIcon} label="Précipitations" value={`${weather.precipitation} mm`} />
       </div>
 
       {/* Hourly forecast */}
@@ -151,13 +165,12 @@ const WeatherPanel = ({ lat, lng, locationName, onClose }: WeatherPanelProps) =>
           <div className="flex gap-1">
             {nextHours.map((h, i) => {
               const hInfo = getWeatherInfo(h.code);
-              const HIcon = hInfo.Icon;
               return (
                 <div key={i} className="flex-1 flex flex-col items-center gap-1 py-2 rounded-2xl bg-muted/40">
                   <span className="text-[11px] text-muted-foreground">
                     {new Date(h.time).getHours()}h
                   </span>
-                  <HIcon className={`h-4 w-4 ${hInfo.color}`} strokeWidth={1.5} />
+                  <HugeiconsIcon icon={hInfo.icon} size={16} className={hInfo.color} strokeWidth={1.5} />
                   <span className="text-[13px] font-semibold text-foreground">
                     {Math.round(h.temp)}°
                   </span>
@@ -171,9 +184,9 @@ const WeatherPanel = ({ lat, lng, locationName, onClose }: WeatherPanelProps) =>
   );
 };
 
-const StatCard = ({ icon: Icon, label, value }: { icon: typeof Sun; label: string; value: string }) => (
+const StatCard = ({ icon, label, value }: { icon: IconSvgElement; label: string; value: string }) => (
   <div className="float-card-sm px-3.5 py-3 flex items-center gap-2.5">
-    <Icon className="h-4 w-4 text-primary shrink-0" strokeWidth={1.5} />
+    <HugeiconsIcon icon={icon} size={16} className="text-primary shrink-0" strokeWidth={1.5} />
     <div>
       <p className="text-[11px] text-muted-foreground leading-none mb-0.5">{label}</p>
       <p className="text-[14px] font-semibold text-foreground leading-none">{value}</p>

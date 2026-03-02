@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Search, MapPin, X } from "lucide-react";
+import { HugeiconsIcon, Search01Icon, Location01Icon, Cancel01Icon } from "@/components/icons";
 
 interface SearchResult {
   name: string;
@@ -72,7 +72,7 @@ const SearchBar = ({ onSelect }: SearchBarProps) => {
   return (
     <div ref={containerRef} className="relative w-full max-w-sm">
       <div className="float-card-sm flex items-center gap-3 px-5 py-3">
-        <Search className="h-[18px] w-[18px] text-muted-foreground" strokeWidth={1.5} />
+        <HugeiconsIcon icon={Search01Icon} size={18} className="text-muted-foreground" strokeWidth={1.5} />
         <input
           value={query}
           onChange={(e) => search(e.target.value)}
@@ -84,7 +84,7 @@ const SearchBar = ({ onSelect }: SearchBarProps) => {
             onClick={() => { setQuery(""); setResults([]); setOpen(false); }}
             className="text-muted-foreground hover:text-foreground transition-colors"
           >
-            <X className="h-4 w-4" strokeWidth={1.5} />
+            <HugeiconsIcon icon={Cancel01Icon} size={16} strokeWidth={1.5} />
           </button>
         )}
       </div>
@@ -97,7 +97,7 @@ const SearchBar = ({ onSelect }: SearchBarProps) => {
               onClick={() => handleSelect(r)}
               className="flex items-center gap-3 w-full px-5 py-3 text-left text-[15px] hover:bg-muted/50 transition-colors"
             >
-              <MapPin className="h-4 w-4 text-primary shrink-0" strokeWidth={1.5} />
+              <HugeiconsIcon icon={Location01Icon} size={16} className="text-primary shrink-0" strokeWidth={1.5} />
               <span className="truncate">
                 <span className="text-foreground font-medium">{r.name}</span>
                 {r.city && <span className="text-muted-foreground"> · {r.city}</span>}
