@@ -1,17 +1,14 @@
 import { useState, useCallback, useRef } from "react";
 import MapView from "@/components/MapView";
 import SearchBar from "@/components/SearchBar";
-import WeatherPanel from "@/components/WeatherPanel";
 import { HugeiconsIcon, SunCloud02Icon } from "@/components/icons";
 import { POI_DATASET } from "@/features/poi/dataset";
 import type { Poi } from "@/features/poi/types";
-import ResponsiveInspector from "@/components/ResponsiveInspector";
-import POIInspector from "@/components/poi/POIInspector";
 import { fetchRouteValhalla } from "@/features/route/valhalla";
 import type { RouteResult } from "@/features/route/valhalla";
-import RouteInspector from "@/components/route/RouteInspector";
 import { analyzeRouteWeather } from "@/features/route/analyze";
 import type { RouteAnalysis } from "@/features/route/analyze";
+import MapHub from "@/components/MapHub";
 
 const Index = () => {
   const [flyTo, setFlyTo] = useState<{ lng: number; lat: number } | null>(null);
@@ -21,7 +18,6 @@ const Index = () => {
     name: string;
   } | null>(null);
   const [selectedPoi, setSelectedPoi] = useState<Poi | null>(null);
-  const [inspectorOpen, setInspectorOpen] = useState(false);
 
   const [routeOrigin, setRouteOrigin] = useState<{ lat: number; lng: number; name: string } | null>(null);
   const [routeDestination, setRouteDestination] = useState<{ lat: number; lng: number; name: string } | null>(null);
@@ -29,7 +25,6 @@ const Index = () => {
   const [routeError, setRouteError] = useState<string | undefined>(undefined);
   const [route, setRoute] = useState<RouteResult | null>(null);
   const [routeAnalysis, setRouteAnalysis] = useState<RouteAnalysis | null>(null);
-  const [routeOpen, setRouteOpen] = useState(false);
   const [departureTs, setDepartureTs] = useState<number>(() => Date.now());
   const analysisTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -57,7 +52,6 @@ const Index = () => {
 
     const dest = { lat, lng, name };
     setRouteDestination(dest);
-    setRouteOpen(true);
 
     if (!routeOrigin) {
       setRouteStatus("idle");
@@ -98,7 +92,6 @@ const Index = () => {
     setRouteError(undefined);
     setRoute(null);
     setRouteAnalysis(null);
-    setRouteOpen(false);
   }, []);
 
   const simulateDeparture = useCallback(
@@ -130,7 +123,6 @@ const Index = () => {
 
   const handlePoiSelect = useCallback((poi: Poi) => {
     setSelectedPoi(poi);
-    setInspectorOpen(true);
     setFlyTo({ lng: poi.position.lng, lat: poi.position.lat });
   }, []);
 
@@ -163,52 +155,24 @@ const Index = () => {
       </div>
 
       {/* Weather Panel */}
-      {weatherLocation && (
-        <div className="absolute bottom-5 left-5 z-10">
-          <WeatherPanel
-            lat={weatherLocation.lat}
-            lng={weatherLocation.lng}
-            locationName={weatherLocation.name}
-            onClose={() => setWeatherLocation(null)}
-          />
-        </div>
-      )}
-
-      <ResponsiveInspector
-        open={inspectorOpen && !!selectedPoi}
-        onOpenChange={(open) => {
-          setInspectorOpen(open);
-          if (!open) setSelectedPoi(null);
-        }}
-        title={selectedPoi?.name}
-      >
-        {selectedPoi && (
-          <POIInspector
-            poi={selectedPoi}
-            onRequestWeatherAt={(lat, lng, name) => setWeatherLocation({ lat, lng, name })}
-          />
-        )}
-      </ResponsiveInspector>
-
-      <ResponsiveInspector
-        open={routeOpen && (!!routeDestination || routeStatus !== "idle")}
-        onOpenChange={(open) => {
-          setRouteOpen(open);
-        }}
-        title={routeDestination?.name ? `Trajet vers ${routeDestination.name}` : "Trajet"}
-      >
-        <RouteInspector
-          originLabel={routeOrigin?.name}
-          destinationLabel={routeDestination?.name}
-          status={routeStatus}
-          errorMessage={routeError}
+      <div className="absolute bottom-5 right-5 z-20">
+        <MapHub
+          weatherLocation={weatherLocation}
+          onClearWeather={() => setWeatherLocation(null)}
+          selectedPoi={selectedPoi}
+          onClearPoi={() => setSelectedPoi(null)}
+          onRequestWeatherAt={(lat, lng, name) => setWeatherLocation({ lat, lng, name })}
+          routeOriginLabel={routeOrigin?.name}
+          routeDestinationLabel={routeDestination?.name}
+          routeStatus={routeStatus}
+          routeError={routeError}
           route={route}
-          analysis={routeAnalysis}
+          routeAnalysis={routeAnalysis}
           departureTs={departureTs}
           onDepartureTsChange={simulateDeparture}
-          onClear={clearRoute}
+          onClearRoute={clearRoute}
         />
-      </ResponsiveInspector>
+      </div>
 
       {/* Hint when no location selected */}
       {!weatherLocation && (

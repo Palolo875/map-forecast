@@ -37,6 +37,7 @@ interface WeatherPanelProps {
   lng: number;
   locationName: string;
   onClose: () => void;
+  embedded?: boolean;
 }
 
 const getWeatherInfo = (code: number): { label: string; icon: IconSvgElement; color: string } => {
@@ -51,7 +52,7 @@ const getWeatherInfo = (code: number): { label: string; icon: IconSvgElement; co
   return { label: "Orage", icon: ZapIcon, color: "text-weather-orange" };
 };
 
-const WeatherPanel = ({ lat, lng, locationName, onClose }: WeatherPanelProps) => {
+const WeatherPanel = ({ lat, lng, locationName, onClose, embedded }: WeatherPanelProps) => {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -88,13 +89,17 @@ const WeatherPanel = ({ lat, lng, locationName, onClose }: WeatherPanelProps) =>
   }, [lat, lng]);
 
   if (loading) {
+    const Wrapper = embedded ? "div" : "div";
+    const wrapperClass = embedded ? "" : "float-card p-6 w-[340px] animate-float-in";
     return (
-      <div className="float-card p-6 w-[340px] animate-float-in">
+      <Wrapper className={wrapperClass}>
         <div className="flex items-center justify-between mb-4">
           <div className="h-4 w-32 bg-muted rounded-full animate-pulse" />
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
-            <HugeiconsIcon icon={Cancel01Icon} size={16} strokeWidth={1.5} />
-          </button>
+          {!embedded && (
+            <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
+              <HugeiconsIcon icon={Cancel01Icon} size={16} strokeWidth={1.5} />
+            </button>
+          )}
         </div>
         <div className="h-16 w-24 bg-muted rounded-2xl animate-pulse mb-4" />
         <div className="grid grid-cols-2 gap-3">
@@ -102,7 +107,7 @@ const WeatherPanel = ({ lat, lng, locationName, onClose }: WeatherPanelProps) =>
             <div key={i} className="h-16 bg-muted rounded-2xl animate-pulse" />
           ))}
         </div>
-      </div>
+      </Wrapper>
     );
   }
 
@@ -116,16 +121,21 @@ const WeatherPanel = ({ lat, lng, locationName, onClose }: WeatherPanelProps) =>
     return hour >= currentHour;
   }).slice(0, 6);
 
+  const Wrapper = embedded ? "div" : "div";
+  const wrapperClass = embedded ? "" : "float-card p-6 w-[340px] animate-float-in";
+
   return (
-    <div className="float-card p-6 w-[340px] animate-float-in">
+    <Wrapper className={wrapperClass}>
       {/* Header */}
       <div className="flex items-center justify-between mb-1">
         <h3 className="text-[15px] font-semibold text-foreground truncate max-w-[260px]">
           {locationName}
         </h3>
-        <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
-          <HugeiconsIcon icon={Cancel01Icon} size={16} strokeWidth={1.5} />
-        </button>
+        {!embedded && (
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
+            <HugeiconsIcon icon={Cancel01Icon} size={16} strokeWidth={1.5} />
+          </button>
+        )}
       </div>
       <p className="text-[13px] text-muted-foreground mb-4">{label}</p>
 
@@ -180,7 +190,7 @@ const WeatherPanel = ({ lat, lng, locationName, onClose }: WeatherPanelProps) =>
           </div>
         </>
       )}
-    </div>
+    </Wrapper>
   );
 };
 

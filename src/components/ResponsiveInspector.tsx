@@ -9,6 +9,7 @@ type ResponsiveInspectorProps = {
   title?: string;
   children: ReactNode;
   className?: string;
+  nonModal?: boolean;
 };
 
 const PreviewHeader = ({ title }: { title?: string }) => (
@@ -25,7 +26,7 @@ const PreviewHeader = ({ title }: { title?: string }) => (
   </div>
 );
 
-export default function ResponsiveInspector({ open, onOpenChange, title, children, className }: ResponsiveInspectorProps) {
+export default function ResponsiveInspector({ open, onOpenChange, title, children, className, nonModal }: ResponsiveInspectorProps) {
   const isMobile = useIsMobile();
 
   if (isMobile) {
@@ -34,10 +35,10 @@ export default function ResponsiveInspector({ open, onOpenChange, title, childre
         open={open}
         onOpenChange={onOpenChange}
         dismissible
-        shouldScaleBackground
+        shouldScaleBackground={!nonModal}
         snapPoints={[0.25, 0.55, 0.92]}
       >
-        <DrawerContent className={cn("border-border", className)}>
+        <DrawerContent showOverlay={!nonModal} className={cn("border-border", className)}>
           <PreviewHeader title={title} />
           <div className="px-5 pb-6 pt-4 overflow-auto">
             {children}
