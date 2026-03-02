@@ -7,11 +7,12 @@ interface MapViewProps {
   flyTo?: { lng: number; lat: number } | null;
   pois?: Poi[];
   onPoiSelect?: (poi: Poi) => void;
+  selectedPoiId?: string | null;
 }
 
 const GENTLE_MAP_STYLE = "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
 
-const MapView = ({ onMapClick, flyTo, pois, onPoiSelect }: MapViewProps) => {
+const MapView = ({ onMapClick, flyTo, pois, onPoiSelect, selectedPoiId }: MapViewProps) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markerRef = useRef<maplibregl.Marker | null>(null);
@@ -94,6 +95,14 @@ const MapView = ({ onMapClick, flyTo, pois, onPoiSelect }: MapViewProps) => {
       el.style.boxShadow = "0 2px 10px rgba(0,0,0,0.10)";
       el.style.background = poi.type === "weather_station" ? "#FFCB5E" : "#9ED9C6";
       el.style.cursor = "pointer";
+      el.style.transition = "transform 0.15s ease, box-shadow 0.15s ease";
+
+      if (selectedPoiId && poi.id === selectedPoiId) {
+        el.style.transform = "scale(1.25)";
+        el.style.boxShadow = "0 6px 18px rgba(0,0,0,0.18)";
+        el.style.outline = "2px solid rgba(0,0,0,0.25)";
+        el.style.outlineOffset = "2px";
+      }
 
       el.addEventListener("click", (e) => {
         e.preventDefault();
@@ -105,7 +114,7 @@ const MapView = ({ onMapClick, flyTo, pois, onPoiSelect }: MapViewProps) => {
         .setLngLat([poi.position.lng, poi.position.lat])
         .addTo(map);
     });
-  }, [pois, onPoiSelect, ready]);
+  }, [pois, onPoiSelect, ready, selectedPoiId]);
 
   return (
     <div ref={mapContainer} className="absolute inset-0 rounded-3xl overflow-hidden" />

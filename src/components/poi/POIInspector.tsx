@@ -4,11 +4,13 @@ import {
   addPoiNote,
   addPoiNoteWithPhotos,
   addPoiVisit,
+  deletePoiNote,
+  deletePoiVisit,
   loadPoiUserState,
   toggleFavorite,
   upsertIdealWeather,
 } from "@/features/poi/storage";
-import { getPhotoObjectUrl, savePhoto } from "@/features/poi/photos";
+import { deletePhoto, getPhotoObjectUrl, savePhoto } from "@/features/poi/photos";
 import { fetchCurrentWeatherSnapshot } from "@/features/poi/weather";
 import type { CurrentWeatherSnapshot } from "@/features/poi/weather";
 import { computeIdealMatchScore } from "@/features/poi/ideal-score";
@@ -56,8 +58,10 @@ export default function POIInspector({ poi, onRequestWeatherAt }: POIInspectorPr
   const [notePreviews, setNotePreviews] = useState<string[]>([]);
   const [savingNote, setSavingNote] = useState(false);
   const [savingVisit, setSavingVisit] = useState(false);
+  const [noteError, setNoteError] = useState<string | null>(null);
   const [currentWeather, setCurrentWeather] = useState<CurrentWeatherSnapshot | null>(null);
   const [loadingCurrent, setLoadingCurrent] = useState(false);
+  const [isOnline, setIsOnline] = useState(() => (typeof navigator !== "undefined" ? navigator.onLine : true));
 
   const ideal = overlay?.idealWeather;
   const idealMatch = useMemo(() => computeIdealMatchScore(ideal, currentWeather), [ideal, currentWeather]);
@@ -67,7 +71,26 @@ export default function POIInspector({ poi, onRequestWeatherAt }: POIInspectorPr
   }, [poi.id]);
 
   useEffect(() => {
+    const on = () => setIsOnline(true);
+    const off = () => setIsOnline(false);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => {
+      window.removeEventListener("online", on);
+      window.removeEventListener("offline", off);
+    };
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
+    if (!isOnline) {
+      setLoadingCurrent(false);
+      setCurrentWeather(null);
+      return () => {
+        cancelled = true;
+      };
+    }
+
     setLoadingCurrent(true);
     fetchCurrentWeatherSnapshot(poi.position.lat, poi.position.lng)
       .then((snap) => {
@@ -83,7 +106,7 @@ export default function POIInspector({ poi, onRequestWeatherAt }: POIInspectorPr
     return () => {
       cancelled = true;
     };
-  }, [poi.position.lat, poi.position.lng]);
+  }, [poi.position.lat, poi.position.lng, isOnline]);
 
   useEffect(() => {
     const urls = noteFiles.map((f) => URL.createObjectURL(f));
@@ -117,6 +140,7 @@ export default function POIInspector({ poi, onRequestWeatherAt }: POIInspectorPr
     const text = noteText.trim();
     if (!text && noteFiles.length === 0) return;
     setSavingNote(true);
+    setNoteError(null);
     try {
       if (noteFiles.length === 0) {
         const next = addPoiNote(poi.id, text);
@@ -134,9 +158,32 @@ export default function POIInspector({ poi, onRequestWeatherAt }: POIInspectorPr
 
       setNoteText("");
       setNoteFiles([]);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "";
+      if (msg === "PHOTO_QUOTA_COUNT") {
+        setNoteError("Quota photos atteint. Supprime quelques photos dans tes notes.");
+      } else if (msg === "PHOTO_QUOTA_BYTES") {
+        setNoteError("Stockage photo presque plein. Supprime quelques photos pour libérer de l'espace.");
+      } else {
+        setNoteError("Impossible d'enregistrer la note.");
+      }
     } finally {
       setSavingNote(false);
     }
+  };
+
+  const onDeleteNote = async (noteId: string) => {
+    const { nextState, deletedPhotoIds } = deletePoiNote(poi.id, noteId);
+    setState(nextState);
+    for (const pid of deletedPhotoIds) {
+      // eslint-disable-next-line no-await-in-loop
+      await deletePhoto(pid);
+    }
+  };
+
+  const onDeleteVisit = (visitId: string) => {
+    const next = deletePoiVisit(poi.id, visitId);
+    setState(next);
   };
 
   const onAddVisit = async () => {
@@ -288,6 +335,9 @@ export default function POIInspector({ poi, onRequestWeatherAt }: POIInspectorPr
                   </div>
                 )}
               </div>
+              {noteError && (
+                <div className="text-sm text-destructive">{noteError}</div>
+              )}
               <Button onClick={onAddNote} disabled={!noteText.trim() && noteFiles.length === 0}>
                 {savingNote ? "Enregistrement..." : "Enregistrer"}
               </Button>
@@ -301,7 +351,12 @@ export default function POIInspector({ poi, onRequestWeatherAt }: POIInspectorPr
               ) : (
                 notes.map((n) => (
                   <div key={n.id} className="float-card-sm px-4 py-3">
-                    <div className="text-xs text-muted-foreground">{new Date(n.createdAt).toLocaleString()}</div>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="text-xs text-muted-foreground">{new Date(n.createdAt).toLocaleString()}</div>
+                      <Button variant="ghost" size="sm" onClick={() => void onDeleteNote(n.id)}>
+                        Supprimer
+                      </Button>
+                    </div>
                     <div className="mt-1 text-sm text-foreground whitespace-pre-wrap">{n.text}</div>
                     {n.photoIds && n.photoIds.length > 0 && (
                       <NotePhotos photoIds={n.photoIds} />
@@ -320,10 +375,16 @@ export default function POIInspector({ poi, onRequestWeatherAt }: POIInspectorPr
                 <div className="text-sm font-medium">Enregistrer une visite</div>
                 <div className="text-xs text-muted-foreground">On stocke la date (snapshot météo ensuite).</div>
               </div>
-              <Button onClick={onAddVisit} size="sm" disabled={savingVisit}>
+              <Button onClick={onAddVisit} size="sm" disabled={savingVisit || !isOnline}>
                 {savingVisit ? "Ajout..." : "Ajouter"}
               </Button>
             </div>
+
+            {!isOnline && (
+              <div className="text-sm text-muted-foreground">
+                Hors-ligne: impossible de récupérer un snapshot météo pour la visite.
+              </div>
+            )}
 
             <div className="space-y-2">
               {visits.length === 0 ? (
@@ -331,7 +392,12 @@ export default function POIInspector({ poi, onRequestWeatherAt }: POIInspectorPr
               ) : (
                 visits.map((v) => (
                   <div key={v.id} className="float-card-sm px-4 py-3">
-                    <div className="text-sm font-medium">{new Date(v.visitedAt).toLocaleString()}</div>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="text-sm font-medium">{new Date(v.visitedAt).toLocaleString()}</div>
+                      <Button variant="ghost" size="sm" onClick={() => onDeleteVisit(v.id)}>
+                        Supprimer
+                      </Button>
+                    </div>
                     <div className="text-xs text-muted-foreground">
                       {v.weatherSnapshot?.temperatureC !== undefined
                         ? `Météo: ${v.weatherSnapshot.temperatureC}°C · Vent ${v.weatherSnapshot.windSpeedKmh ?? "—"} km/h · Pluie ${v.weatherSnapshot.precipitationMm ?? "—"} mm`

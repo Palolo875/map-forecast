@@ -49,7 +49,13 @@ const Index = () => {
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-background">
       {/* Map */}
-      <MapView onMapClick={handleMapClick} flyTo={flyTo} pois={POI_DATASET} onPoiSelect={handlePoiSelect} />
+      <MapView
+        onMapClick={handleMapClick}
+        flyTo={flyTo}
+        pois={POI_DATASET}
+        onPoiSelect={handlePoiSelect}
+        selectedPoiId={selectedPoi?.id ?? null}
+      />
 
       {/* Top overlay */}
       <div className="absolute top-5 left-5 right-5 z-10 flex items-start gap-3">

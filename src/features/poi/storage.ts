@@ -43,6 +43,21 @@ export function toggleFavorite(poiId: string): PoiUserState {
   return nextState;
 }
 
+export function deletePoiNote(poiId: string, noteId: string): { nextState: PoiUserState; deletedPhotoIds: string[] } {
+  const state = loadPoiUserState();
+  const prevNotes = state.notesByPoiId[poiId] ?? [];
+  const toDelete = prevNotes.find((n) => n.id === noteId);
+  const deletedPhotoIds = toDelete?.photoIds ?? [];
+  const nextNotes = prevNotes.filter((n) => n.id !== noteId);
+
+  const nextState: PoiUserState = {
+    ...state,
+    notesByPoiId: { ...state.notesByPoiId, [poiId]: nextNotes },
+  };
+  savePoiUserState(nextState);
+  return { nextState, deletedPhotoIds };
+}
+
 export function addPoiVisitWithSnapshot(poiId: string, snapshot: PoiVisit["weatherSnapshot"]): PoiUserState {
   return addPoiVisit(poiId, snapshot);
 }
@@ -92,6 +107,18 @@ export function addPoiVisit(poiId: string, snapshot?: PoiVisit["weatherSnapshot"
   };
 
   const nextVisits = [visit, ...(state.visitsByPoiId[poiId] ?? [])];
+  const nextState: PoiUserState = {
+    ...state,
+    visitsByPoiId: { ...state.visitsByPoiId, [poiId]: nextVisits },
+  };
+  savePoiUserState(nextState);
+  return nextState;
+}
+
+export function deletePoiVisit(poiId: string, visitId: string): PoiUserState {
+  const state = loadPoiUserState();
+  const prevVisits = state.visitsByPoiId[poiId] ?? [];
+  const nextVisits = prevVisits.filter((v) => v.id !== visitId);
   const nextState: PoiUserState = {
     ...state,
     visitsByPoiId: { ...state.visitsByPoiId, [poiId]: nextVisits },
