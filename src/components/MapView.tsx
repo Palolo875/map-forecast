@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import maplibregl from "maplibre-gl";
 import type { Poi } from "@/features/poi/types";
+import { useMap } from "@/map/MapContext";
 
 interface MapViewProps {
   onMapClick?: (lng: number, lat: number) => void;
@@ -11,12 +12,46 @@ interface MapViewProps {
   routeLine?: GeoJSON.LineString | null;
   routeSegments?: GeoJSON.FeatureCollection<GeoJSON.LineString, { color?: string }> | null;
   fitToRoute?: boolean;
+
+  mapMode?: "road" | "topo" | "satellite" | "nautical";
+  mapTheme?: "light" | "dark" | "cream" | "high-contrast";
+  isNight?: boolean;
+  nauticalOverlay?: boolean;
 }
 
-const GENTLE_MAP_STYLE = "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
+const STYLE_ROAD_LIGHT = "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
+const STYLE_ROAD_DARK = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
+
+function rasterStyle(tiles: string[], attribution?: string) {
+  const style: maplibregl.StyleSpecification = {
+    version: 8 as const,
+    sources: {
+      raster: {
+        type: "raster" as const,
+        tiles,
+        tileSize: 256,
+        attribution,
+      },
+    },
+    layers: [
+      {
+        id: "raster",
+        type: "raster" as const,
+        source: "raster",
+      },
+    ],
+  };
+
+  return style;
+}
 
 const ROUTE_SOURCE_ID = "route";
 const ROUTE_LAYER_ID = "route-line";
+
+const NAUTICAL_SOURCE_ID = "nautical";
+const NAUTICAL_LAYER_ID = "nautical-tiles";
+
+const NIGHT_OVERLAY_LAYER_ID = "night-overlay";
 
 const MapView = ({
   onMapClick,
@@ -27,12 +62,45 @@ const MapView = ({
   routeLine,
   routeSegments,
   fitToRoute,
+  mapMode = "road",
+  mapTheme = "cream",
+  isNight = false,
+  nauticalOverlay = false,
 }: MapViewProps) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markerRef = useRef<maplibregl.Marker | null>(null);
   const poiMarkersRef = useRef<maplibregl.Marker[]>([]);
   const [ready, setReady] = useState(false);
+  const [styleTick, setStyleTick] = useState(0);
+  const { setMap } = useMap();
+
+  const resolveStyleUrl = useCallback(() => {
+    const wantsDark = mapTheme === "dark" || (mapAutoTheme(mapTheme) && isNight);
+
+    if (mapMode === "topo") {
+      return rasterStyle(
+        ["https://tile.opentopomap.org/{z}/{x}/{y}.png"],
+        "© OpenTopoMap (CC-BY-SA) · © OpenStreetMap contributors",
+      );
+    }
+
+    if (mapMode === "satellite") {
+      return rasterStyle(
+        ["https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
+        "Tiles © Esri",
+      );
+    }
+
+    if (wantsDark) return STYLE_ROAD_DARK;
+    return STYLE_ROAD_LIGHT;
+  }, [isNight, mapMode, mapTheme]);
+
+  function mapAutoTheme(theme: MapViewProps["mapTheme"]) {
+    return theme === "cream" || theme === "light";
+  }
+
+  const isHighContrast = mapTheme === "high-contrast";
 
   const placeMarker = useCallback((map: maplibregl.Map, lng: number, lat: number) => {
     if (markerRef.current) markerRef.current.remove();
@@ -56,7 +124,7 @@ const MapView = ({
 
     const map = new maplibregl.Map({
       container: mapContainer.current,
-      style: GENTLE_MAP_STYLE,
+      style: STYLE_ROAD_LIGHT,
       center: [2.35, 48.85],
       zoom: 5,
       attributionControl: false,
@@ -71,7 +139,10 @@ const MapView = ({
       "bottom-right"
     );
 
-    map.on("load", () => setReady(true));
+    const onLoad = () => setReady(true);
+    const onStyleData = () => setStyleTick((t) => t + 1);
+    map.on("load", onLoad);
+    map.on("styledata", onStyleData);
 
     map.on("click", (e) => {
       const { lng, lat } = e.lngLat;
@@ -80,13 +151,59 @@ const MapView = ({
     });
 
     mapRef.current = map;
-    return () => map.remove();
+    setMap(map);
+    return () => {
+      map.off("load", onLoad);
+      map.off("styledata", onStyleData);
+      setMap(null);
+      map.remove();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (!mapRef.current || !ready) return;
     const map = mapRef.current;
+    const nextStyle = resolveStyleUrl();
+
+    // MapLibre does not expose a reliable style URL getter; we reset style when mode/theme changes.
+    // This re-adds custom sources/layers through other effects.
+    map.setStyle(nextStyle, { diff: true });
+  }, [mapMode, mapTheme, isNight, ready, resolveStyleUrl]);
+
+  useEffect(() => {
+    if (!mapRef.current || !ready) return;
+    const map = mapRef.current;
+    if (!map.isStyleLoaded()) return;
+
+    const wantsOverlay = isNight && mapAutoTheme(mapTheme);
+    const has = !!map.getLayer(NIGHT_OVERLAY_LAYER_ID);
+    if (!wantsOverlay) {
+      if (has) map.removeLayer(NIGHT_OVERLAY_LAYER_ID);
+      return;
+    }
+
+    // Overlay above the base raster layer when using raster basemaps.
+    // For vector basemaps, the chosen dark style is used instead.
+    if (!has && map.getLayer("raster")) {
+      map.addLayer(
+        {
+          id: NIGHT_OVERLAY_LAYER_ID,
+          type: "background",
+          paint: {
+            "background-color": "#0b0f14",
+            "background-opacity": 0.35,
+          },
+        },
+        NAUTICAL_LAYER_ID,
+      );
+    }
+  }, [isNight, mapTheme, ready, styleTick]);
+
+  useEffect(() => {
+    if (!mapRef.current || !ready) return;
+    const map = mapRef.current;
+    if (!map.isStyleLoaded()) return;
 
     const existing = map.getSource(ROUTE_SOURCE_ID);
     if (!existing) {
@@ -111,16 +228,52 @@ const MapView = ({
         },
         paint: {
           "line-color": ["coalesce", ["get", "color"], "#0EA5E9"],
-          "line-width": 5,
+          "line-width": isHighContrast ? 7 : 5,
           "line-opacity": 0.9,
         },
       });
     }
-  }, [ready, routeLine, routeSegments]);
+  }, [isHighContrast, ready, routeLine, routeSegments, styleTick]);
 
   useEffect(() => {
     if (!mapRef.current || !ready) return;
     const map = mapRef.current;
+    if (!map.isStyleLoaded()) return;
+    const wants = nauticalOverlay;
+
+    const existingSource = map.getSource(NAUTICAL_SOURCE_ID);
+    const existingLayer = map.getLayer(NAUTICAL_LAYER_ID);
+
+    if (!wants) {
+      if (existingLayer) map.removeLayer(NAUTICAL_LAYER_ID);
+      if (existingSource) map.removeSource(NAUTICAL_SOURCE_ID);
+      return;
+    }
+
+    if (!existingSource) {
+      map.addSource(NAUTICAL_SOURCE_ID, {
+        type: "raster",
+        tiles: ["https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png"],
+        tileSize: 256,
+      });
+    }
+
+    if (!existingLayer) {
+      map.addLayer({
+        id: NAUTICAL_LAYER_ID,
+        type: "raster",
+        source: NAUTICAL_SOURCE_ID,
+        paint: {
+          "raster-opacity": 0.85,
+        },
+      });
+    }
+  }, [nauticalOverlay, ready, styleTick]);
+
+  useEffect(() => {
+    if (!mapRef.current || !ready) return;
+    const map = mapRef.current;
+    if (!map.isStyleLoaded()) return;
     const src = map.getSource(ROUTE_SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
     if (!src) return;
 
@@ -164,7 +317,7 @@ const MapView = ({
       ],
       { padding: 70, duration: 900 }
     );
-  }, [fitToRoute, ready, routeLine, routeSegments]);
+  }, [fitToRoute, ready, routeLine, routeSegments, styleTick]);
 
   useEffect(() => {
     if (!flyTo || !mapRef.current || !ready) return;

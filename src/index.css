@@ -22,10 +22,10 @@
     --primary-foreground: 0 0% 12%;
 
     --secondary: 36 33% 97%;
-    --secondary-foreground: 0 0% 42%; /* #6B6B6B */
+    --secondary-foreground: 0 0% 35%; /* #595959 */
 
     --muted: 33 20% 93%;
-    --muted-foreground: 0 0% 42%;     /* #6B6B6B */
+    --muted-foreground: 0 0% 35%;     /* #595959 */
 
     --accent: 37 100% 68%;            /* #FFCB5E jaune soleil */
     --accent-foreground: 0 0% 12%;

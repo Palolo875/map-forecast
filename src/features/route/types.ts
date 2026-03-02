@@ -1,8 +1,7 @@
 export type LatLng = { lat: number; lng: number };
 
 export type RouteRequest = {
-  origin: LatLng;
-  destination: LatLng;
+  stops: [LatLng, LatLng, ...LatLng[]];
   profile: "pedestrian" | "bicycle" | "auto";
 };
 
@@ -11,7 +10,8 @@ export type ValhallaRouteShape = {
 };
 
 export type ValhallaRouteLeg = {
-  shape: string;
+  shape: unknown;
+  maneuvers?: unknown;
   summary?: {
     length?: number;
     time?: number;

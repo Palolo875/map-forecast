@@ -219,6 +219,7 @@ export default function RouteInspector({
             <Badge variant="secondary">—</Badge>
           )}
         </div>
+        <div className="text-[11px] text-muted-foreground">0 = faible, 100 = élevé</div>
 
         {analysis?.samples?.length ? (
           <div className="pt-2">

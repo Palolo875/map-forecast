@@ -2,10 +2,18 @@ import type { LatLng, RouteRequest, ValhallaRouteResponse } from "./types";
 
 const VALHALLA_BASE_URL = "https://valhalla1.openstreetmap.de";
 
+export type RouteManeuver = {
+  index: number;
+  instruction: string;
+  distanceKm?: number;
+  durationSec?: number;
+};
+
 export type RouteResult = {
   line: GeoJSON.LineString;
   distanceKm?: number;
   durationSec?: number;
+  maneuvers?: RouteManeuver[];
 };
 
 function isCoordTuple(v: unknown): v is [number, number] {
@@ -26,11 +34,64 @@ function toValhallaLocation(p: LatLng) {
   return { lat: p.lat, lon: p.lng };
 }
 
+function mergeLegCoordinates(legs: Array<{ shape: unknown }> | undefined): Array<[number, number]> | null {
+  if (!legs?.length) return null;
+
+  const merged: Array<[number, number]> = [];
+  for (const leg of legs) {
+    const shapeUnknown: unknown = leg?.shape;
+    if (!isCoordsArray(shapeUnknown)) continue;
+
+    const coords = shapeUnknown;
+    if (!coords.length) continue;
+
+    if (merged.length === 0) {
+      merged.push(...coords);
+      continue;
+    }
+
+    const last = merged[merged.length - 1];
+    const first = coords[0];
+    const startIndex = last && first && last[0] === first[0] && last[1] === first[1] ? 1 : 0;
+    merged.push(...coords.slice(startIndex));
+  }
+
+  return merged.length ? merged : null;
+}
+
+function extractManeuvers(legs: Array<{ maneuvers?: unknown }> | undefined): RouteManeuver[] {
+  const out: RouteManeuver[] = [];
+  if (!legs?.length) return out;
+
+  for (const leg of legs) {
+    const msUnknown: unknown = leg?.maneuvers;
+    if (!Array.isArray(msUnknown)) continue;
+
+    for (const m of msUnknown) {
+      if (!m || typeof m !== "object") continue;
+      const mm = m as { instruction?: unknown; length?: unknown; time?: unknown };
+      if (typeof mm.instruction !== "string" || !mm.instruction.trim()) continue;
+
+      const lengthKm = typeof mm.length === "number" ? mm.length : undefined;
+      const timeSec = typeof mm.time === "number" ? mm.time : undefined;
+
+      out.push({
+        index: out.length,
+        instruction: mm.instruction,
+        distanceKm: lengthKm,
+        durationSec: timeSec,
+      });
+    }
+  }
+
+  return out;
+}
+
 export async function fetchRouteValhalla(req: RouteRequest): Promise<RouteResult> {
   const costing = normalizeProfile(req.profile);
 
   const body = {
-    locations: [toValhallaLocation(req.origin), toValhallaLocation(req.destination)],
+    locations: req.stops.map(toValhallaLocation),
     costing,
     directions_options: { units: "kilometers" },
     shape_format: "geojson",
@@ -47,21 +108,19 @@ export async function fetchRouteValhalla(req: RouteRequest): Promise<RouteResult
   }
 
   const data = (await res.json()) as ValhallaRouteResponse;
-  const leg = data.trip?.legs?.[0];
 
-  const shapeUnknown: unknown = leg ? (leg as { shape?: unknown }).shape : undefined;
-  if (!leg || !isCoordsArray(shapeUnknown)) {
-    throw new Error("VALHALLA_NO_SHAPE");
-  }
+  const coords = mergeLegCoordinates((data.trip?.legs as Array<{ shape: unknown }> | undefined) ?? undefined);
+  if (!coords) throw new Error("VALHALLA_NO_SHAPE");
 
-  const coords = shapeUnknown;
   const line: GeoJSON.LineString = {
     type: "LineString",
     coordinates: coords,
   };
 
-  const distanceKm = data.trip?.summary?.length ?? leg.summary?.length;
-  const durationSec = data.trip?.summary?.time ?? leg.summary?.time;
+  const maneuvers = extractManeuvers((data.trip?.legs as Array<{ maneuvers?: unknown }> | undefined) ?? undefined);
 
-  return { line, distanceKm, durationSec };
+  const distanceKm = data.trip?.summary?.length;
+  const durationSec = data.trip?.summary?.time;
+
+  return { line, distanceKm, durationSec, maneuvers };
 }

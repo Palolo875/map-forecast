@@ -21,6 +21,45 @@ type OpenMeteoHourlyResponse = {
 
 const hourlyCache = new Map<string, Promise<OpenMeteoHourlyResponse>>();
 
+type PersistedHourlyCacheEntry = {
+  savedAt: number;
+  data: OpenMeteoHourlyResponse;
+};
+
+const PERSIST_TTL_MS = 60 * 60 * 1000;
+
+function storageKey(key: string) {
+  return `mf_hourly_${key}`;
+}
+
+function readPersisted(key: string): OpenMeteoHourlyResponse | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(storageKey(key));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as PersistedHourlyCacheEntry;
+    if (!parsed || typeof parsed !== "object") return null;
+    if (typeof parsed.savedAt !== "number" || !parsed.data) return null;
+    if (Date.now() - parsed.savedAt > PERSIST_TTL_MS) {
+      window.localStorage.removeItem(storageKey(key));
+      return null;
+    }
+    return parsed.data;
+  } catch {
+    return null;
+  }
+}
+
+function writePersisted(key: string, data: OpenMeteoHourlyResponse) {
+  if (typeof window === "undefined") return;
+  try {
+    const payload: PersistedHourlyCacheEntry = { savedAt: Date.now(), data };
+    window.localStorage.setItem(storageKey(key), JSON.stringify(payload));
+  } catch {
+    // ignore (quota / private mode)
+  }
+}
+
 function cacheKey(lat: number, lng: number) {
   return `${lat.toFixed(3)}|${lng.toFixed(3)}`;
 }
@@ -45,10 +84,14 @@ export async function fetchHourlyWeatherAt(lat: number, lng: number, targetTs: n
   const fetchPromise =
     existing ??
     (async () => {
+      const persisted = readPersisted(key);
+      if (persisted) return persisted;
       const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&hourly=temperature_2m,wind_speed_10m,precipitation,weather_code,cloud_cover&timezone=auto&forecast_days=2`;
       const res = await fetch(url);
       if (!res.ok) throw new Error(`OPEN_METEO_${res.status}`);
-      return (await res.json()) as OpenMeteoHourlyResponse;
+      const data = (await res.json()) as OpenMeteoHourlyResponse;
+      writePersisted(key, data);
+      return data;
     })();
 
   if (!existing) hourlyCache.set(key, fetchPromise);

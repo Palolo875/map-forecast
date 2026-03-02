@@ -36,9 +36,19 @@ export function scoreRiskFromWeather(w: HourlyWeatherPoint) {
   const wind = w.windSpeedKmh ?? 0;
   const code = w.weatherCode ?? 0;
 
+  // Critical thresholds: if exceeded, the situation is considered max risk.
+  // Keep conservative defaults to avoid false positives while still handling extreme conditions.
+  const criticalWindKmh = 80;
+  const criticalRainMmPerH = 12;
+  const isStorm = code >= 95;
+
+  if (wind >= criticalWindKmh) return 100;
+  if (rain >= criticalRainMmPerH) return 100;
+  if (isStorm && (wind >= 70 || rain >= 6)) return 100;
+
   const rainScore = clamp((rain / 6) * 60, 0, 60); // 6mm/h => 60pts
   const windScore = clamp(((wind - 20) / 60) * 35, 0, 35); // 20->80km/h => 0->35pts
-  const stormBonus = code >= 95 ? 20 : 0;
+  const stormBonus = isStorm ? 20 : 0;
 
   return clamp(rainScore + windScore + stormBonus, 0, 100);
 }
