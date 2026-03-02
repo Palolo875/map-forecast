@@ -1,17 +1,21 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import maplibregl from "maplibre-gl";
+import type { Poi } from "@/features/poi/types";
 
 interface MapViewProps {
   onMapClick?: (lng: number, lat: number) => void;
   flyTo?: { lng: number; lat: number } | null;
+  pois?: Poi[];
+  onPoiSelect?: (poi: Poi) => void;
 }
 
 const GENTLE_MAP_STYLE = "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
 
-const MapView = ({ onMapClick, flyTo }: MapViewProps) => {
+const MapView = ({ onMapClick, flyTo, pois, onPoiSelect }: MapViewProps) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markerRef = useRef<maplibregl.Marker | null>(null);
+  const poiMarkersRef = useRef<maplibregl.Marker[]>([]);
   const [ready, setReady] = useState(false);
 
   const placeMarker = useCallback((map: maplibregl.Map, lng: number, lat: number) => {
@@ -69,6 +73,39 @@ const MapView = ({ onMapClick, flyTo }: MapViewProps) => {
     mapRef.current.flyTo({ center: [flyTo.lng, flyTo.lat], zoom: 10, duration: 1400 });
     placeMarker(mapRef.current, flyTo.lng, flyTo.lat);
   }, [flyTo, ready, placeMarker]);
+
+  useEffect(() => {
+    if (!mapRef.current || !ready) return;
+
+    poiMarkersRef.current.forEach((m) => m.remove());
+    poiMarkersRef.current = [];
+
+    if (!pois || pois.length === 0) return;
+
+    const map = mapRef.current;
+
+    poiMarkersRef.current = pois.map((poi) => {
+      const el = document.createElement("button");
+      el.type = "button";
+      el.style.width = "14px";
+      el.style.height = "14px";
+      el.style.borderRadius = "999px";
+      el.style.border = "3px solid #FAF8F4";
+      el.style.boxShadow = "0 2px 10px rgba(0,0,0,0.10)";
+      el.style.background = poi.type === "weather_station" ? "#FFCB5E" : "#9ED9C6";
+      el.style.cursor = "pointer";
+
+      el.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onPoiSelect?.(poi);
+      });
+
+      return new maplibregl.Marker({ element: el })
+        .setLngLat([poi.position.lng, poi.position.lat])
+        .addTo(map);
+    });
+  }, [pois, onPoiSelect, ready]);
 
   return (
     <div ref={mapContainer} className="absolute inset-0 rounded-3xl overflow-hidden" />

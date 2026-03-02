@@ -66,6 +66,18 @@
   }
 }
 
+@layer base {
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+  }
+}
+
 @layer utilities {
   .float-card {
     background: hsl(var(--card));

@@ -3,6 +3,10 @@ import MapView from "@/components/MapView";
 import SearchBar from "@/components/SearchBar";
 import WeatherPanel from "@/components/WeatherPanel";
 import { HugeiconsIcon, SunCloud02Icon } from "@/components/icons";
+import { POI_DATASET } from "@/features/poi/dataset";
+import type { Poi } from "@/features/poi/types";
+import ResponsiveInspector from "@/components/ResponsiveInspector";
+import POIInspector from "@/components/poi/POIInspector";
 
 const Index = () => {
   const [flyTo, setFlyTo] = useState<{ lng: number; lat: number } | null>(null);
@@ -11,6 +15,8 @@ const Index = () => {
     lng: number;
     name: string;
   } | null>(null);
+  const [selectedPoi, setSelectedPoi] = useState<Poi | null>(null);
+  const [inspectorOpen, setInspectorOpen] = useState(false);
 
   const handleMapClick = useCallback(async (lng: number, lat: number) => {
     let name = `${lat.toFixed(3)}, ${lng.toFixed(3)}`;
@@ -34,10 +40,16 @@ const Index = () => {
     setWeatherLocation({ lat, lng, name });
   }, []);
 
+  const handlePoiSelect = useCallback((poi: Poi) => {
+    setSelectedPoi(poi);
+    setInspectorOpen(true);
+    setFlyTo({ lng: poi.position.lng, lat: poi.position.lat });
+  }, []);
+
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-background">
       {/* Map */}
-      <MapView onMapClick={handleMapClick} flyTo={flyTo} />
+      <MapView onMapClick={handleMapClick} flyTo={flyTo} pois={POI_DATASET} onPoiSelect={handlePoiSelect} />
 
       {/* Top overlay */}
       <div className="absolute top-5 left-5 right-5 z-10 flex items-start gap-3">
@@ -64,6 +76,22 @@ const Index = () => {
           />
         </div>
       )}
+
+      <ResponsiveInspector
+        open={inspectorOpen && !!selectedPoi}
+        onOpenChange={(open) => {
+          setInspectorOpen(open);
+          if (!open) setSelectedPoi(null);
+        }}
+        title={selectedPoi?.name}
+      >
+        {selectedPoi && (
+          <POIInspector
+            poi={selectedPoi}
+            onRequestWeatherAt={(lat, lng, name) => setWeatherLocation({ lat, lng, name })}
+          />
+        )}
+      </ResponsiveInspector>
 
       {/* Hint when no location selected */}
       {!weatherLocation && (
