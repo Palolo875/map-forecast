@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import MapView from "@/components/MapView";
 import SearchBar from "@/components/SearchBar";
 import WeatherPanel from "@/components/WeatherPanel";
-import { CloudSun } from "lucide-react";
+import { HugeiconsIcon, SunCloud02Icon } from "@/components/icons";
 
 const Index = () => {
   const [flyTo, setFlyTo] = useState<{ lng: number; lat: number } | null>(null);
@@ -13,7 +13,6 @@ const Index = () => {
   } | null>(null);
 
   const handleMapClick = useCallback(async (lng: number, lat: number) => {
-    // Reverse geocode with Photon
     let name = `${lat.toFixed(3)}, ${lng.toFixed(3)}`;
     try {
       const res = await fetch(
@@ -44,7 +43,7 @@ const Index = () => {
       <div className="absolute top-5 left-5 right-5 z-10 flex items-start gap-3">
         {/* Logo */}
         <div className="float-card-sm flex items-center gap-2.5 px-4 py-3 shrink-0">
-          <CloudSun className="h-5 w-5 text-primary" strokeWidth={1.5} />
+          <HugeiconsIcon icon={SunCloud02Icon} size={20} className="text-primary" strokeWidth={1.5} />
           <span className="text-[15px] font-semibold text-foreground">
             NavéoMap
           </span>
