@@ -23,6 +23,12 @@ import DragDropVerticalIcon from "@hugeicons/core-free-icons/DragDropVerticalIco
 import SidebarLeftIcon from "@hugeicons/core-free-icons/SidebarLeftIcon";
 import HumidityIcon from "@hugeicons/core-free-icons/HumidityIcon";
 import WindTurbineIcon from "@hugeicons/core-free-icons/WindTurbineIcon";
+import LayersIcon from "@hugeicons/core-free-icons/LeftToRightListBulletIcon";
+import MoonIcon from "@hugeicons/core-free-icons/Moon02Icon";
+import SailboatIcon from "@hugeicons/core-free-icons/Compass01Icon";
+import EyeIcon from "@hugeicons/core-free-icons/ViewIcon";
+import AnchorPointIcon from "@hugeicons/core-free-icons/Location01Icon";
+import SpeedometerIcon from "@hugeicons/core-free-icons/DashboardSpeed01Icon";
 
 export {
   HugeiconsIcon,
@@ -31,6 +37,7 @@ export {
   ViewIcon, TemperatureIcon, ArrowUp01Icon, ArrowDown01Icon, SunCloud02Icon,
   Tick02Icon, ArrowLeft01Icon, ArrowRight01Icon, RecordIcon, MoreHorizontalIcon,
   DragDropVerticalIcon, SidebarLeftIcon, HumidityIcon, WindTurbineIcon,
+  LayersIcon, MoonIcon, SailboatIcon, EyeIcon, AnchorPointIcon, SpeedometerIcon,
 };
 export type { HugeiconsIconProps };
 export type { IconSvgElement } from "@hugeicons/react";

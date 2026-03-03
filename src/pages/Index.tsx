@@ -2,8 +2,6 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import MapView from "@/components/MapView";
 import SearchBar from "@/components/SearchBar";
 import { HugeiconsIcon, SunCloud02Icon } from "@/components/icons";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Switch } from "@/components/ui/switch";
 import { computeSunTimes } from "@/map/sun";
 import { POI_DATASET } from "@/features/poi/dataset";
 import type { Poi } from "@/features/poi/types";
@@ -12,6 +10,8 @@ import { analyzeRouteWeather } from "@/features/route/analyze";
 import type { RouteAnalysis } from "@/features/route/analyze";
 import type { RouteRequest } from "@/features/route/types";
 import MapHub from "@/components/MapHub";
+import MapLayerSelector from "@/components/MapLayerSelector";
+import type { MapMode, MapTheme } from "@/components/MapLayerSelector";
 import { createValhallaAdapter } from "@/features/route/providers/ValhallaAdapter";
 import { routingErrorLabel, toRoutingError } from "@/features/route/providers/RoutingProvider";
 
@@ -36,8 +36,8 @@ const Index = () => {
   } | null>(null);
   const [selectedPoi, setSelectedPoi] = useState<Poi | null>(null);
 
-  const [mapMode, setMapMode] = useState<"road" | "topo" | "satellite" | "nautical">("road");
-  const [mapTheme, setMapTheme] = useState<"light" | "dark" | "cream" | "high-contrast">("cream");
+  const [mapMode, setMapMode] = useState<MapMode>("road");
+  const [mapTheme, setMapTheme] = useState<MapTheme>("cream");
   const [mapAutoDayNight, setMapAutoDayNight] = useState<boolean>(true);
   const [mapNauticalOverlay, setMapNauticalOverlay] = useState<boolean>(false);
   const [mapIsNightNow, setMapIsNightNow] = useState<boolean>(false);
@@ -51,6 +51,9 @@ const Index = () => {
   const [routeAnalysis, setRouteAnalysis] = useState<RouteAnalysis | null>(null);
   const [departureTs, setDepartureTs] = useState<number>(() => Date.now());
   const analysisTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Nautical mode: detect if we should show nautical units
+  const isNauticalMode = mapMode === "nautical" || mapNauticalOverlay;
 
   const requestRoute = useCallback(
     (stops: Array<{ lat: number; lng: number; name: string }>, profile: RouteRequest["profile"]) => {
@@ -295,52 +298,26 @@ const Index = () => {
         {/* Search */}
         <SearchBar onSelect={handleSearchSelect} />
 
-        <div className="float-card-sm px-4 py-3 grid gap-2 shrink-0">
-          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Carte</div>
-          <ToggleGroup
-            type="single"
-            value={mapMode}
-            onValueChange={(v) => {
-              const next = (v as typeof mapMode) || mapMode;
-              setMapMode(next);
-            }}
-            variant="outline"
-            size="sm"
-            className="justify-start"
-          >
-            <ToggleGroupItem value="road">Routière</ToggleGroupItem>
-            <ToggleGroupItem value="topo">Topo</ToggleGroupItem>
-            <ToggleGroupItem value="satellite">Satellite</ToggleGroupItem>
-            <ToggleGroupItem value="nautical">Nautique</ToggleGroupItem>
-          </ToggleGroup>
+        {/* Map Layer Selector — single button opening popover */}
+        <MapLayerSelector
+          mapMode={mapMode}
+          onMapModeChange={setMapMode}
+          mapTheme={mapTheme}
+          onMapThemeChange={setMapTheme}
+          autoDayNight={mapAutoDayNight}
+          onAutoDayNightChange={setMapAutoDayNight}
+          nauticalOverlay={mapNauticalOverlay}
+          onNauticalOverlayChange={setMapNauticalOverlay}
+          isNight={mapIsNightNow}
+        />
 
-          <div className="flex items-center justify-between gap-3">
-            <div className="text-xs text-muted-foreground">Jour/nuit auto</div>
-            <Switch checked={mapAutoDayNight} onCheckedChange={setMapAutoDayNight} />
+        {/* Nautical unit indicator */}
+        {isNauticalMode && (
+          <div className="float-card-sm px-3 py-2 flex items-center gap-2 text-[11px] text-primary font-medium animate-fade-in shrink-0">
+            <span>🧭</span>
+            <span>kt · nm</span>
           </div>
-
-          <div className="flex items-center justify-between gap-3">
-            <div className="text-xs text-muted-foreground">Overlay marin</div>
-            <Switch checked={mapNauticalOverlay} onCheckedChange={setMapNauticalOverlay} />
-          </div>
-
-          <ToggleGroup
-            type="single"
-            value={mapTheme}
-            onValueChange={(v) => {
-              const next = (v as typeof mapTheme) || mapTheme;
-              setMapTheme(next);
-            }}
-            variant="outline"
-            size="sm"
-            className="justify-start"
-          >
-            <ToggleGroupItem value="light">Light</ToggleGroupItem>
-            <ToggleGroupItem value="cream">Cream</ToggleGroupItem>
-            <ToggleGroupItem value="dark">Dark</ToggleGroupItem>
-            <ToggleGroupItem value="high-contrast">HC</ToggleGroupItem>
-          </ToggleGroup>
-        </div>
+        )}
       </div>
 
       {/* Weather Panel */}
@@ -365,6 +342,7 @@ const Index = () => {
           departureTs={departureTs}
           onDepartureTsChange={simulateDeparture}
           onClearRoute={clearRoute}
+          useNauticalUnits={isNauticalMode}
         />
       </div>
 

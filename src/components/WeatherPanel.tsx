@@ -38,6 +38,7 @@ interface WeatherPanelProps {
   locationName: string;
   onClose: () => void;
   embedded?: boolean;
+  useNauticalUnits?: boolean;
 }
 
 type OpenMeteoWeatherResponse = {
@@ -75,7 +76,7 @@ const getWeatherInfo = (code: number): { label: string; icon: IconSvgElement; co
   return { label: "Orage", icon: ZapIcon, color: "text-weather-orange" };
 };
 
-const WeatherPanel = ({ lat, lng, locationName, onClose, embedded }: WeatherPanelProps) => {
+const WeatherPanel = ({ lat, lng, locationName, onClose, embedded, useNauticalUnits }: WeatherPanelProps) => {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -197,7 +198,14 @@ const WeatherPanel = ({ lat, lng, locationName, onClose, embedded }: WeatherPane
       <div className="grid grid-cols-2 gap-2.5 mb-5">
         <StatCard icon={TemperatureIcon} label="Ressenti" value={`${weather.feelsLike}°`} />
         <StatCard icon={HumidityIcon} label="Humidité" value={`${weather.humidity}%`} />
-        <StatCard icon={WindTurbineIcon} label="Vent" value={`${weather.windSpeed} km/h`} />
+        <StatCard
+          icon={WindTurbineIcon}
+          label="Vent"
+          value={useNauticalUnits
+            ? `${Math.round(weather.windSpeed / 1.852)} kt`
+            : `${weather.windSpeed} km/h`
+          }
+        />
         <StatCard icon={DropletIcon} label="Précipitations" value={`${weather.precipitation} mm`} />
       </div>
 
