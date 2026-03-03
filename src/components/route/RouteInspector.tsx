@@ -120,29 +120,25 @@ export default function RouteInspector({
         const start = Date.now();
         const candidates = Math.floor((horizonHours * 60) / stepMin) + 1;
 
-        const results: Array<{ departureTs: number; riskScore: number }> = [];
+        const results = await Promise.all(
+          Array.from({ length: candidates }, (_, c) => {
+            const dep = start + c * stepMin * 60000;
+            const tasks = picks.map((pick, i) => {
+              const progress01 = picks.length === 1 ? 0 : i / (picks.length - 1);
+              const etaTs = dep + Math.round(durationSec * progress01) * 1000;
+              const lng = pick?.[0];
+              const lat = pick?.[1];
+              if (typeof lat !== "number" || typeof lng !== "number") return null;
+              return fetchHourlyWeatherAt(lat, lng, etaTs).then(scoreRiskFromWeather);
+            });
 
-        for (let c = 0; c < candidates; c += 1) {
-          const dep = start + c * stepMin * 60000;
-          let acc = 0;
-          let count = 0;
-
-          for (let i = 0; i < picks.length; i += 1) {
-            const progress01 = picks.length === 1 ? 0 : i / (picks.length - 1);
-            const etaTs = dep + Math.round(durationSec * progress01) * 1000;
-            const lng = picks[i]?.[0];
-            const lat = picks[i]?.[1];
-            if (typeof lat !== "number" || typeof lng !== "number") continue;
-
-            const w = await fetchHourlyWeatherAt(lat, lng, etaTs);
-            const score = scoreRiskFromWeather(w);
-            acc += score;
-            count += 1;
-          }
-
-          const avg = count ? Math.round(acc / count) : 0;
-          results.push({ departureTs: dep, riskScore: riskFromScore(avg).score });
-        }
+            return Promise.all(tasks).then((scores) => {
+              const valid = scores.filter((s): s is number => typeof s === "number");
+              const avg = valid.length ? Math.round(valid.reduce((acc, s) => acc + s, 0) / valid.length) : 0;
+              return { departureTs: dep, riskScore: riskFromScore(avg).score };
+            });
+          }),
+        );
 
         results.sort((a, b) => a.riskScore - b.riskScore);
         const top = results.slice(0, 4);

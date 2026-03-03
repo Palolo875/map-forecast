@@ -119,7 +119,7 @@ export default function POIInspector({ poi, onRequestWeatherAt }: POIInspectorPr
   const headerSubtitle = useMemo(() => {
     const parts: string[] = [];
     if (poi.meta && typeof poi.meta === "object") {
-      const altitude = (poi.meta as any).altitudeM;
+      const altitude = (poi.meta as { altitudeM?: number }).altitudeM;
       if (typeof altitude === "number") parts.push(`${altitude} m`);
     }
     parts.push(`${poi.position.lat.toFixed(4)}, ${poi.position.lng.toFixed(4)}`);
@@ -148,7 +148,6 @@ export default function POIInspector({ poi, onRequestWeatherAt }: POIInspectorPr
       } else {
         const photoIds: string[] = [];
         for (const f of noteFiles) {
-          // eslint-disable-next-line no-await-in-loop
           const id = await savePhoto(f);
           photoIds.push(id);
         }
@@ -176,7 +175,6 @@ export default function POIInspector({ poi, onRequestWeatherAt }: POIInspectorPr
     const { nextState, deletedPhotoIds } = deletePoiNote(poi.id, noteId);
     setState(nextState);
     for (const pid of deletedPhotoIds) {
-      // eslint-disable-next-line no-await-in-loop
       await deletePhoto(pid);
     }
   };
@@ -424,7 +422,6 @@ function NotePhotos({ photoIds }: { photoIds: string[] }) {
     (async () => {
       const next: string[] = [];
       for (const id of photoIds) {
-        // eslint-disable-next-line no-await-in-loop
         const url = await getPhotoObjectUrl(id);
         if (url) {
           created.push(url);

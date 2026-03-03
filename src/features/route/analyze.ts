@@ -31,13 +31,10 @@ function colorForRisk(level: RiskLevel) {
 }
 
 export function scoreRiskFromWeather(w: HourlyWeatherPoint) {
-  // Simple V1 heuristic, extensible later.
   const rain = w.precipitationMm ?? 0;
   const wind = w.windSpeedKmh ?? 0;
   const code = w.weatherCode ?? 0;
 
-  // Critical thresholds: if exceeded, the situation is considered max risk.
-  // Keep conservative defaults to avoid false positives while still handling extreme conditions.
   const criticalWindKmh = 80;
   const criticalRainMmPerH = 12;
   const isStorm = code >= 95;
@@ -46,8 +43,8 @@ export function scoreRiskFromWeather(w: HourlyWeatherPoint) {
   if (rain >= criticalRainMmPerH) return 100;
   if (isStorm && (wind >= 70 || rain >= 6)) return 100;
 
-  const rainScore = clamp((rain / 6) * 60, 0, 60); // 6mm/h => 60pts
-  const windScore = clamp(((wind - 20) / 60) * 35, 0, 35); // 20->80km/h => 0->35pts
+  const rainScore = clamp((rain / 6) * 60, 0, 60);
+  const windScore = clamp(((wind - 20) / 60) * 35, 0, 35);
   const stormBonus = isStorm ? 20 : 0;
 
   return clamp(rainScore + windScore + stormBonus, 0, 100);
@@ -61,29 +58,30 @@ export async function analyzeRouteWeather(route: RouteResult, departureTs: numbe
   const durationSec = route.durationSec ?? Math.max(60, Math.round((distKm / 70) * 3600));
 
   const N = Math.max(6, Math.min(36, Math.round(sampleCount)));
-  const samples: RouteSamplePoint[] = [];
-
-  for (let i = 0; i < N; i += 1) {
+  const points = Array.from({ length: N }, (_, i) => {
     const progress01 = N === 1 ? 0 : i / (N - 1);
     const d = distKm * progress01;
     const p = along(line, d, { units: "kilometers" }) as Feature<Point>;
     const lng = p.geometry.coordinates[0];
     const lat = p.geometry.coordinates[1];
-
     const etaTs = departureTs + Math.round(durationSec * progress01) * 1000;
-    const weather = await fetchHourlyWeatherAt(lat, lng, etaTs);
+    return { index: i, progress01, lat, lng, etaTs };
+  });
+
+  const weathers = await Promise.all(points.map((p) => fetchHourlyWeatherAt(p.lat, p.lng, p.etaTs)));
+  const samples: RouteSamplePoint[] = points.map((p, i) => {
+    const weather = weathers[i]!;
     const score = scoreRiskFromWeather(weather);
     const risk = riskFromScore(score);
-
-    samples.push({
-      index: i,
-      progress01,
-      position: { lat, lng },
-      etaTs,
+    return {
+      index: p.index,
+      progress01: p.progress01,
+      position: { lat: p.lat, lng: p.lng },
+      etaTs: p.etaTs,
       weather,
       risk,
-    });
-  }
+    };
+  });
 
   const segmentFeatures: Array<Feature<LineString, { color: string; riskScore: number; riskLevel: RiskLevel; t0: number; t1: number }>> = [];
   for (let i = 0; i < samples.length - 1; i += 1) {

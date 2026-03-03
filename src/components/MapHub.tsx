@@ -16,6 +16,8 @@ import { Separator } from "@/components/ui/separator";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
+const OPEN_METEO_BASE_URL = import.meta.env.VITE_OPEN_METEO_BASE_URL ?? "https://api.open-meteo.com";
+
 export type HubWeatherLocation = {
   lat: number;
   lng: number;
@@ -147,7 +149,7 @@ export default function MapHub({
 
       setMiniWeather({ status: "loading" });
       try {
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${weatherLocation.lat}&longitude=${weatherLocation.lng}&current=temperature_2m,weather_code,wind_speed_10m,precipitation&timezone=auto`;
+        const url = `${OPEN_METEO_BASE_URL}/v1/forecast?latitude=${weatherLocation.lat}&longitude=${weatherLocation.lng}&current=temperature_2m,weather_code,wind_speed_10m,precipitation&timezone=auto`;
         const res = await fetch(url);
         if (!res.ok) throw new Error(`OPEN_METEO_${res.status}`);
         const data = await res.json();
@@ -175,7 +177,7 @@ export default function MapHub({
       return;
     }
     const state = loadPoiUserState();
-    setPoiIsFavorite(state.favorites.includes(selectedPoi.id));
+    setPoiIsFavorite(!!state.overlaysByPoiId[selectedPoi.id]?.isFavorite);
   }, [selectedPoi]);
 
   const title = useMemo(() => {

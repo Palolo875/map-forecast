@@ -28,6 +28,8 @@ type PersistedHourlyCacheEntry = {
 
 const PERSIST_TTL_MS = 60 * 60 * 1000;
 
+const OPEN_METEO_BASE_URL = import.meta.env.VITE_OPEN_METEO_BASE_URL ?? "https://api.open-meteo.com";
+
 function storageKey(key: string) {
   return `mf_hourly_${key}`;
 }
@@ -86,7 +88,7 @@ export async function fetchHourlyWeatherAt(lat: number, lng: number, targetTs: n
     (async () => {
       const persisted = readPersisted(key);
       if (persisted) return persisted;
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&hourly=temperature_2m,wind_speed_10m,precipitation,weather_code,cloud_cover&timezone=auto&forecast_days=2`;
+      const url = `${OPEN_METEO_BASE_URL}/v1/forecast?latitude=${lat}&longitude=${lng}&hourly=temperature_2m,wind_speed_10m,precipitation,weather_code,cloud_cover&timezone=auto&forecast_days=2`;
       const res = await fetch(url);
       if (!res.ok) throw new Error(`OPEN_METEO_${res.status}`);
       const data = (await res.json()) as OpenMeteoHourlyResponse;

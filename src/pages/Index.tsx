@@ -15,6 +15,16 @@ import MapHub from "@/components/MapHub";
 import { createValhallaAdapter } from "@/features/route/providers/ValhallaAdapter";
 import { routingErrorLabel, toRoutingError } from "@/features/route/providers/RoutingProvider";
 
+type PhotonReverseFeature = {
+  properties?: { name?: string; city?: string; country?: string };
+};
+
+type PhotonReverseResponse = {
+  features?: PhotonReverseFeature[];
+};
+
+const PHOTON_BASE_URL = import.meta.env.VITE_PHOTON_BASE_URL ?? "https://photon.komoot.io";
+
 const Index = () => {
   const routingProvider = useRef(createValhallaAdapter());
 
@@ -131,15 +141,16 @@ const Index = () => {
     let name = `${lat.toFixed(3)}, ${lng.toFixed(3)}`;
     try {
       const res = await fetch(
-        `https://photon.komoot.io/reverse?lat=${lat}&lon=${lng}&lang=fr`
+        `${PHOTON_BASE_URL}/reverse?lat=${lat}&lon=${lng}&lang=fr`,
       );
-      const data = await res.json();
-      if (data.features?.length > 0) {
-        const p = data.features[0].properties;
+      if (!res.ok) throw new Error(`PHOTON_${res.status}`);
+      const data = (await res.json()) as PhotonReverseResponse;
+      const p = data.features?.[0]?.properties;
+      if (p) {
         name = [p.name, p.city, p.country].filter(Boolean).join(", ");
       }
     } catch {
-      // keep coordinates as name
+      void name;
     }
     setWeatherLocation({ lat, lng, name });
 

@@ -14,11 +14,24 @@ interface SearchBarProps {
   onSelect: (lat: number, lng: number, name: string) => void;
 }
 
+type PhotonFeature = {
+  properties?: { name?: string; city?: string; state?: string; country?: string };
+  geometry?: { coordinates?: [number, number] };
+};
+
+type PhotonResponse = {
+  features?: PhotonFeature[];
+};
+
+const PHOTON_BASE_URL = import.meta.env.VITE_PHOTON_BASE_URL ?? "https://photon.komoot.io";
+
 const SearchBar = ({ onSelect }: SearchBarProps) => {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [open, setOpen] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const requestRef = useRef(0);
+  const abortRef = useRef<AbortController | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -35,6 +48,7 @@ const SearchBar = ({ onSelect }: SearchBarProps) => {
     setQuery(q);
     if (timerRef.current) clearTimeout(timerRef.current);
     if (q.length < 2) {
+      if (abortRef.current) abortRef.current.abort();
       setResults([]);
       setOpen(false);
       return;
@@ -42,18 +56,34 @@ const SearchBar = ({ onSelect }: SearchBarProps) => {
 
     timerRef.current = setTimeout(async () => {
       try {
+        requestRef.current += 1;
+        const requestId = requestRef.current;
+        if (abortRef.current) abortRef.current.abort();
+        const controller = new AbortController();
+        abortRef.current = controller;
         const res = await fetch(
-          `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=5&lang=fr`
+          `${PHOTON_BASE_URL}/api/?q=${encodeURIComponent(q)}&limit=5&lang=fr`,
+          { signal: controller.signal },
         );
-        const data = await res.json();
-        const mapped: SearchResult[] = data.features.map((f: any) => ({
-          name: f.properties.name || "",
-          city: f.properties.city,
-          state: f.properties.state,
-          country: f.properties.country,
-          lat: f.geometry.coordinates[1],
-          lng: f.geometry.coordinates[0],
-        }));
+        if (!res.ok) throw new Error(`PHOTON_${res.status}`);
+        const data = (await res.json()) as PhotonResponse;
+        if (requestId !== requestRef.current) return;
+        const mapped: SearchResult[] = (data.features ?? [])
+          .map((f) => {
+            const coords = f.geometry?.coordinates;
+            if (!Array.isArray(coords) || coords.length < 2) return null;
+            const [lng, lat] = coords;
+            if (typeof lat !== "number" || typeof lng !== "number") return null;
+            return {
+              name: f.properties?.name ?? "",
+              city: f.properties?.city,
+              state: f.properties?.state,
+              country: f.properties?.country,
+              lat,
+              lng,
+            } satisfies SearchResult;
+          })
+          .filter((r): r is SearchResult => !!r && !!r.name);
         setResults(mapped);
         setOpen(mapped.length > 0);
       } catch {

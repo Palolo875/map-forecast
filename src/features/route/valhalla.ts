@@ -1,6 +1,6 @@
 import type { LatLng, RouteRequest, ValhallaRouteResponse } from "./types";
 
-const VALHALLA_BASE_URL = "https://valhalla1.openstreetmap.de";
+const VALHALLA_BASE_URL = import.meta.env.VITE_VALHALLA_BASE_URL ?? "https://valhalla1.openstreetmap.de";
 
 export type RouteManeuver = {
   index: number;

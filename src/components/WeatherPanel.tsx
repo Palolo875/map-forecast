@@ -40,6 +40,29 @@ interface WeatherPanelProps {
   embedded?: boolean;
 }
 
+type OpenMeteoWeatherResponse = {
+  current?: {
+    temperature_2m?: number;
+    apparent_temperature?: number;
+    relative_humidity_2m?: number;
+    wind_speed_10m?: number;
+    wind_direction_10m?: number;
+    precipitation?: number;
+    weather_code?: number;
+  };
+  daily?: {
+    temperature_2m_max?: number[];
+    temperature_2m_min?: number[];
+  };
+  hourly?: {
+    time?: string[];
+    temperature_2m?: number[];
+    weather_code?: number[];
+  };
+};
+
+const OPEN_METEO_BASE_URL = import.meta.env.VITE_OPEN_METEO_BASE_URL ?? "https://api.open-meteo.com";
+
 const getWeatherInfo = (code: number): { label: string; icon: IconSvgElement; color: string } => {
   if (code === 0) return { label: "Dégagé", icon: Sun03Icon, color: "text-weather-sun" };
   if (code <= 3) return { label: "Nuageux", icon: CloudIcon, color: "text-muted-foreground" };
@@ -57,35 +80,48 @@ const WeatherPanel = ({ lat, lng, locationName, onClose, embedded }: WeatherPane
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const controller = new AbortController();
     setLoading(true);
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,precipitation&daily=temperature_2m_max,temperature_2m_min&hourly=temperature_2m,weather_code&timezone=auto&forecast_days=1`;
+    const url = `${OPEN_METEO_BASE_URL}/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,precipitation&daily=temperature_2m_max,temperature_2m_min&hourly=temperature_2m,weather_code&timezone=auto&forecast_days=1`;
 
-    fetch(url)
-      .then((r) => r.json())
+    fetch(url, { signal: controller.signal })
+      .then((r) => {
+        if (!r.ok) throw new Error(`OPEN_METEO_${r.status}`);
+        return r.json();
+      })
       .then((data) => {
-        const c = data.current;
-        const hourly = data.hourly.time.slice(0, 24).map((t: string, i: number) => ({
+        const payload = data as OpenMeteoWeatherResponse;
+        const c = payload.current;
+        const hourlyTimes = payload.hourly?.time ?? [];
+        const hourlyTemps = payload.hourly?.temperature_2m ?? [];
+        const hourlyCodes = payload.hourly?.weather_code ?? [];
+        const hourly = hourlyTimes.slice(0, 24).map((t, i) => ({
           time: t,
-          temp: data.hourly.temperature_2m[i],
-          code: data.hourly.weather_code[i],
+          temp: hourlyTemps[i] ?? 0,
+          code: hourlyCodes[i] ?? 0,
         }));
+        if (!c) throw new Error("OPEN_METEO_PAYLOAD");
+        const tempMax = payload.daily?.temperature_2m_max?.[0];
+        const tempMin = payload.daily?.temperature_2m_min?.[0];
+        if (typeof tempMax !== "number" || typeof tempMin !== "number") throw new Error("OPEN_METEO_DAILY");
 
         setWeather({
-          temperature: Math.round(c.temperature_2m),
-          feelsLike: Math.round(c.apparent_temperature),
-          humidity: c.relative_humidity_2m,
-          windSpeed: Math.round(c.wind_speed_10m),
-          windDirection: c.wind_direction_10m,
-          weatherCode: c.weather_code,
+          temperature: Math.round(c.temperature_2m ?? 0),
+          feelsLike: Math.round(c.apparent_temperature ?? 0),
+          humidity: c.relative_humidity_2m ?? 0,
+          windSpeed: Math.round(c.wind_speed_10m ?? 0),
+          windDirection: c.wind_direction_10m ?? 0,
+          weatherCode: c.weather_code ?? 0,
           visibility: 10,
-          tempMax: Math.round(data.daily.temperature_2m_max[0]),
-          tempMin: Math.round(data.daily.temperature_2m_min[0]),
-          precipitation: c.precipitation,
+          tempMax: Math.round(tempMax),
+          tempMin: Math.round(tempMin),
+          precipitation: c.precipitation ?? 0,
           hourly,
         });
         setLoading(false);
       })
       .catch(() => setLoading(false));
+    return () => controller.abort();
   }, [lat, lng]);
 
   if (loading) {
