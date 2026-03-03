@@ -268,7 +268,7 @@ const Index = () => {
   }, [dayNightRef, mapAutoDayNight]);
 
   return (
-    <div className="relative h-screen w-screen overflow-hidden bg-background">
+    <div className={`relative h-screen w-screen overflow-hidden bg-background ${mapTheme === 'high-contrast' ? 'high-contrast-mode' : ''}`}>
       {/* Map */}
       <MapView
         onMapClick={handleMapClick}

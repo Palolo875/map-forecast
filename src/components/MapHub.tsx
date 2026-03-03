@@ -614,12 +614,12 @@ export default function MapHub({
             )}
 
             {route && (route.maneuvers?.length ?? 0) > 0 && (
-              <TurnByTurn route={route} stepIndex={navStepIndex} onStepIndexChange={setNavStepIndex} />
+              <TurnByTurn route={route} stepIndex={navStepIndex} onStepIndexChange={setNavStepIndex} useNauticalUnits={useNauticalUnits} />
             )}
 
-            <RouteInspector
+<RouteInspector
               originLabel={routeStops[0]?.name}
-              destinationLabel={routeStops.length >= 2 ? routeStops[routeStops.length - 1]?.name : undefined}
+              destinationLabel={routeStops[routeStops.length - 1]?.name}
               status={routeStatus}
               errorMessage={routeError}
               route={route}
@@ -627,6 +627,7 @@ export default function MapHub({
               departureTs={departureTs}
               onDepartureTsChange={onDepartureTsChange}
               onClear={onClearRoute}
+              useNauticalUnits={useNauticalUnits}
             />
           </div>
         )}

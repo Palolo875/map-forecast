@@ -22,7 +22,7 @@ interface MapViewProps {
 const STYLE_ROAD_LIGHT = "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
 const STYLE_ROAD_DARK = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
 
-function rasterStyle(tiles: string[], attribution?: string) {
+function rasterStyle(tiles: string[], attribution?: string, showHillshading = false) {
   const style: maplibregl.StyleSpecification = {
     version: 8 as const,
     sources: {
@@ -38,15 +38,39 @@ function rasterStyle(tiles: string[], attribution?: string) {
         id: "raster",
         type: "raster" as const,
         source: "raster",
+        paint: {
+          "raster-fade-duration": 300,
+        },
       },
     ],
   };
+
+  if (showHillshading) {
+    style.sources!.terrain = {
+      type: "raster-dem",
+      tiles: ["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"],
+      encoding: "terrarium",
+      tileSize: 256,
+    };
+    style.layers!.push({
+      id: "hillshading",
+      type: "hillshade",
+      source: "terrain",
+      paint: {
+        "hillshade-exaggeration": 0.5,
+        "hillshade-shadow-color": "#2D3748",
+        "hillshade-highlight-color": "#FFFFFF",
+        "hillshade-accent-color": "#4A5568",
+      },
+    });
+  }
 
   return style;
 }
 
 const ROUTE_SOURCE_ID = "route";
 const ROUTE_LAYER_ID = "route-line";
+const ROUTE_CASING_LAYER_ID = "route-casing";
 
 const NAUTICAL_SOURCE_ID = "nautical";
 const NAUTICAL_LAYER_ID = "nautical-tiles";
@@ -75,6 +99,8 @@ const MapView = ({
   const [styleTick, setStyleTick] = useState(0);
   const { setMap } = useMap();
 
+  const isHighContrast = mapTheme === "high-contrast";
+
   const resolveStyleUrl = useCallback(() => {
     const wantsDark = mapTheme === "dark" || (mapAutoTheme(mapTheme) && isNight);
 
@@ -82,6 +108,7 @@ const MapView = ({
       return rasterStyle(
         ["https://tile.opentopomap.org/{z}/{x}/{y}.png"],
         "© OpenTopoMap (CC-BY-SA) · © OpenStreetMap contributors",
+        true, // Enable hillshading for Topo mode
       );
     }
 
@@ -100,19 +127,18 @@ const MapView = ({
     return theme === "cream" || theme === "light";
   }
 
-  const isHighContrast = mapTheme === "high-contrast";
-
   const placeMarker = useCallback((map: maplibregl.Map, lng: number, lat: number) => {
     if (markerRef.current) markerRef.current.remove();
 
     const el = document.createElement("div");
-    el.style.width = "20px";
-    el.style.height = "20px";
+    el.className = "marker-pulse";
+    el.style.width = "24px";
+    el.style.height = "24px";
     el.style.borderRadius = "50%";
     el.style.background = "#9ED9C6";
     el.style.border = "4px solid #FAF8F4";
-    el.style.boxShadow = "0 2px 12px rgba(158,217,198,0.4)";
-    el.style.transition = "transform 0.2s ease";
+    el.style.boxShadow = "0 4px 16px rgba(158,217,198,0.6)";
+    el.style.transition = "transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)";
 
     markerRef.current = new maplibregl.Marker({ element: el })
       .setLngLat([lng, lat])
@@ -128,6 +154,7 @@ const MapView = ({
       center: [2.35, 48.85],
       zoom: 5,
       attributionControl: false,
+      fadeDuration: 300, // Smooth transition between styles
     });
 
     map.addControl(new maplibregl.NavigationControl({ showCompass: true, showZoom: true }), "bottom-right");
@@ -166,10 +193,30 @@ const MapView = ({
     const map = mapRef.current;
     const nextStyle = resolveStyleUrl();
 
-    // MapLibre does not expose a reliable style URL getter; we reset style when mode/theme changes.
-    // This re-adds custom sources/layers through other effects.
     map.setStyle(nextStyle, { diff: true });
   }, [mapMode, mapTheme, isNight, ready, resolveStyleUrl]);
+
+  // Apply visual improvements to text labels when style changes
+  useEffect(() => {
+    if (!mapRef.current || !ready) return;
+    const map = mapRef.current;
+    if (!map.isStyleLoaded()) return;
+
+    // Improve text legibility on complex backgrounds (like satellite)
+    const layers = map.getStyle().layers;
+    if (layers) {
+      layers.forEach(layer => {
+        if (layer.type === 'symbol' && layer.paint) {
+          // Add halos to text for better contrast
+          map.setPaintProperty(layer.id, 'text-halo-width', 1.5);
+          map.setPaintProperty(layer.id, 'text-halo-color', mapMode === 'satellite' ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.8)');
+          if (mapMode === 'satellite') {
+            map.setPaintProperty(layer.id, 'text-color', '#FFFFFF');
+          }
+        }
+      });
+    }
+  }, [mapMode, ready, styleTick]);
 
   useEffect(() => {
     if (!mapRef.current || !ready) return;
@@ -183,8 +230,6 @@ const MapView = ({
       return;
     }
 
-    // Overlay above the base raster layer when using raster basemaps.
-    // For vector basemaps, the chosen dark style is used instead.
     if (!has && map.getLayer("raster")) {
       map.addLayer(
         {
@@ -218,6 +263,19 @@ const MapView = ({
           } as GeoJSON.Feature<GeoJSON.LineString>),
       });
 
+      // Add casing for better route visibility
+      map.addLayer({
+        id: ROUTE_CASING_LAYER_ID,
+        type: "line",
+        source: ROUTE_SOURCE_ID,
+        layout: { "line-join": "round", "line-cap": "round" },
+        paint: {
+          "line-color": "#FFFFFF",
+          "line-width": isHighContrast ? 10 : 8,
+          "line-opacity": 0.4,
+        }
+      });
+
       map.addLayer({
         id: ROUTE_LAYER_ID,
         type: "line",
@@ -229,7 +287,7 @@ const MapView = ({
         paint: {
           "line-color": ["coalesce", ["get", "color"], "#0EA5E9"],
           "line-width": isHighContrast ? 7 : 5,
-          "line-opacity": 0.9,
+          "line-opacity": 1.0,
         },
       });
     }
@@ -315,13 +373,13 @@ const MapView = ({
         [minLng, minLat],
         [maxLng, maxLat],
       ],
-      { padding: 70, duration: 900 }
+      { padding: 70, duration: 1200, easing: (t) => t * (2 - t) }
     );
   }, [fitToRoute, ready, routeLine, routeSegments, styleTick]);
 
   useEffect(() => {
     if (!flyTo || !mapRef.current || !ready) return;
-    mapRef.current.flyTo({ center: [flyTo.lng, flyTo.lat], zoom: 10, duration: 1400 });
+    mapRef.current.flyTo({ center: [flyTo.lng, flyTo.lat], zoom: 10, duration: 1800, easing: (t) => t * (2 - t) });
     placeMarker(mapRef.current, flyTo.lng, flyTo.lat);
   }, [flyTo, ready, placeMarker]);
 
@@ -338,20 +396,21 @@ const MapView = ({
     poiMarkersRef.current = pois.map((poi) => {
       const el = document.createElement("button");
       el.type = "button";
-      el.style.width = "14px";
-      el.style.height = "14px";
+      el.className = "poi-marker";
+      el.style.width = "18px";
+      el.style.height = "18px";
       el.style.borderRadius = "999px";
       el.style.border = "3px solid #FAF8F4";
-      el.style.boxShadow = "0 2px 10px rgba(0,0,0,0.10)";
+      el.style.boxShadow = "0 3px 12px rgba(0,0,0,0.15)";
       el.style.background = poi.type === "weather_station" ? "#FFCB5E" : "#9ED9C6";
       el.style.cursor = "pointer";
-      el.style.transition = "transform 0.15s ease, box-shadow 0.15s ease";
+      el.style.transition = "all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)";
 
       if (selectedPoiId && poi.id === selectedPoiId) {
-        el.style.transform = "scale(1.25)";
-        el.style.boxShadow = "0 6px 18px rgba(0,0,0,0.18)";
-        el.style.outline = "2px solid rgba(0,0,0,0.25)";
-        el.style.outlineOffset = "2px";
+        el.style.transform = "scale(1.4)";
+        el.style.boxShadow = "0 8px 24px rgba(0,0,0,0.25)";
+        el.style.zIndex = "10";
+        el.style.borderColor = "#FFFFFF";
       }
 
       el.addEventListener("click", (e) => {
@@ -367,7 +426,7 @@ const MapView = ({
   }, [pois, onPoiSelect, ready, selectedPoiId]);
 
   return (
-    <div ref={mapContainer} className="absolute inset-0 rounded-3xl overflow-hidden" />
+    <div ref={mapContainer} className="absolute inset-0 rounded-3xl overflow-hidden shadow-inner" />
   );
 };
 

@@ -4,8 +4,12 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 
-function formatDistanceKm(km?: number) {
+function formatDistanceKm(km?: number, useNautical = false) {
   if (km === undefined) return "—";
+  if (useNautical) {
+    const nm = km * 0.539957;
+    return `${nm.toFixed(2)} nm`;
+  }
   if (km < 1) return `${Math.round(km * 1000)} m`;
   return `${km.toFixed(1)} km`;
 }
@@ -21,6 +25,7 @@ type TurnByTurnProps = {
   route: RouteResult;
   stepIndex: number;
   onStepIndexChange: (next: number) => void;
+  useNauticalUnits?: boolean;
 };
 
 export default function TurnByTurn({ route, stepIndex, onStepIndexChange }: TurnByTurnProps) {
@@ -92,7 +97,7 @@ export default function TurnByTurn({ route, stepIndex, onStepIndexChange }: Turn
                 <div className="text-[11px] text-muted-foreground">Maintenant</div>
                 <div className="text-[18px] font-semibold text-foreground leading-snug">{current.instruction}</div>
               </div>
-              <Badge variant="secondary">{formatDistanceKm(current.distanceKm)}</Badge>
+              <Badge variant="secondary">{formatDistanceKm(current.distanceKm, useNauticalUnits)}</Badge>
             </div>
 
             <div className="text-xs text-muted-foreground">Durée: {formatDurationSec(current.durationSec)}</div>

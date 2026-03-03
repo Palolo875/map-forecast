@@ -20,6 +20,7 @@ type RouteInspectorProps = {
   departureTs?: number;
   onDepartureTsChange?: (nextDepartureTs: number) => void;
   onClear: () => void;
+  useNauticalUnits?: boolean;
 };
 
 export default function RouteInspector({
@@ -169,7 +170,11 @@ export default function RouteInspector({
           {status === "error" && (errorMessage ?? "Erreur de calcul")}
           {status === "ready" && route && (
             <>
-              {route.distanceKm !== undefined ? `${route.distanceKm.toFixed(1)} km` : "—"}
+              {route.distanceKm !== undefined 
+                ? (useNauticalUnits 
+                  ? `${(route.distanceKm * 0.539957).toFixed(1)} nm` 
+                  : `${route.distanceKm.toFixed(1)} km`) 
+                : "—"}
               {" · "}
               {route.durationSec !== undefined ? `${Math.round(route.durationSec / 60)} min` : "—"}
             </>
@@ -237,7 +242,7 @@ export default function RouteInspector({
                     </div>
                   </div>
                   <div className="mt-1 text-[11px] text-muted-foreground">
-                    Vent {s.weather.windSpeedKmh ?? "—"} · Pluie {s.weather.precipitationMm ?? "—"}
+                    Vent {s.weather.windSpeedKmh !== undefined ? (useNauticalUnits ? `${Math.round(s.weather.windSpeedKmh / 1.852)} kt` : `${s.weather.windSpeedKmh} km/h`) : "—"} · Pluie {s.weather.precipitationMm ?? "—"}
                   </div>
                 </button>
               ))}
@@ -259,7 +264,13 @@ export default function RouteInspector({
                   </div>
                   <div className="rounded-xl bg-background/60 border px-3 py-2">
                     <div className="text-[11px] text-muted-foreground">Vent</div>
-                    <div className="text-sm font-medium text-foreground">{selectedSample.weather.windSpeedKmh ?? "—"}{selectedSample.weather.windSpeedKmh !== undefined ? " km/h" : ""}</div>
+                    <div className="text-sm font-medium text-foreground">
+                      {selectedSample.weather.windSpeedKmh !== undefined 
+                        ? (useNauticalUnits 
+                          ? `${Math.round(selectedSample.weather.windSpeedKmh / 1.852)} kt` 
+                          : `${selectedSample.weather.windSpeedKmh} km/h`) 
+                        : "—"}
+                    </div>
                   </div>
                   <div className="rounded-xl bg-background/60 border px-3 py-2">
                     <div className="text-[11px] text-muted-foreground">Pluie</div>
