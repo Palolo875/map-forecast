@@ -50,6 +50,7 @@ type MapHubProps = {
   departureTs: number;
   onDepartureTsChange: (nextDepartureTs: number) => void;
   onClearRoute: () => void;
+  useNauticalUnits?: boolean;
 };
 
 function clampTab(tab: HubTab, ctx: { hasWeather: boolean; hasRoute: boolean; hasPoi: boolean }): HubTab {
@@ -117,6 +118,7 @@ export default function MapHub({
   departureTs,
   onDepartureTsChange,
   onClearRoute,
+  useNauticalUnits,
 }: MapHubProps) {
   const isMobile = useIsMobile();
   const ctx = useMemo(
@@ -356,7 +358,11 @@ export default function MapHub({
                             <div className="rounded-xl border bg-muted/20 px-3 py-2">
                               <div className="text-[11px] text-muted-foreground">Vent</div>
                               <div className="text-sm font-semibold text-foreground">
-                                {miniWeather.windKmh !== undefined ? `${miniWeather.windKmh} km/h` : "—"}
+                                {miniWeather.windKmh !== undefined
+                                  ? useNauticalUnits
+                                    ? `${Math.round(miniWeather.windKmh / 1.852)} kt`
+                                    : `${miniWeather.windKmh} km/h`
+                                  : "—"}
                               </div>
                             </div>
                             <div className="rounded-xl border bg-muted/20 px-3 py-2">
@@ -502,6 +508,7 @@ export default function MapHub({
                     locationName={weatherLocation.name}
                     onClose={onClearWeather}
                     embedded
+                    useNauticalUnits={useNauticalUnits}
                   />
                 </div>
               </>

@@ -83,7 +83,7 @@ const SearchBar = ({ onSelect }: SearchBarProps) => {
               lng,
             } satisfies SearchResult;
           })
-          .filter((r): r is SearchResult => !!r && !!r.name);
+          .filter((r): r is NonNullable<typeof r> => !!r && !!r.name);
         setResults(mapped);
         setOpen(mapped.length > 0);
       } catch {

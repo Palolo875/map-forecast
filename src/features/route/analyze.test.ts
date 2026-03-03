@@ -36,7 +36,7 @@ describe("analyzeRouteWeather", () => {
   it("computes samples, segments, and global risk", async () => {
     const route = {
       line: {
-        type: "LineString",
+        type: "LineString" as const,
         coordinates: [
           [2.35, 48.85],
           [2.45, 48.9],
