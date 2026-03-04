@@ -12,6 +12,9 @@ export default {
       screens: { "2xl": "1400px" },
     },
     extend: {
+      backgroundImage: {
+        'grain': "var(--misty-grain)",
+      },
       fontFamily: {
         sans: ["'Inter'", "system-ui", "sans-serif"],
       },

@@ -2,48 +2,26 @@ import type { Poi } from "@/features/poi/types";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { HubBadge, HubButton, labelPoiType, labelWeather } from "@/components/maphub/shared";
+import { useMapHub } from "@/components/maphub/MapHubContext";
 
-type MiniWeather =
-  | { status: "idle" | "loading" | "ready" | "error"; temperature?: number; windKmh?: number; precipitationMm?: number; code?: number }
-  | null;
+export default function OverviewTab() {
+  const {
+    ctx,
+    weatherLocation,
+    miniWeather,
+    useNauticalUnits,
+    setTab,
+    routeProfile,
+    onRouteProfileChange,
+    routeBadge,
+    overviewRouteSubtitle,
+    routeAlertsPreview,
+    onClearRoute,
+    selectedPoi,
+    poiIsFavorite,
+    onClearPoi,
+  } = useMapHub();
 
-type OverviewTabProps = {
-  ctx: { hasWeather: boolean; hasRoute: boolean; hasPoi: boolean };
-  weatherLocationName?: string;
-  miniWeather: MiniWeather;
-  useNauticalUnits?: boolean;
-  onOpenWeather: () => void;
-  routeProfile: "auto" | "bicycle" | "pedestrian";
-  onRouteProfileChange: (next: "auto" | "bicycle" | "pedestrian") => void;
-  routeBadge?: { variant: "default" | "secondary" | "destructive"; label: string };
-  overviewRouteSubtitle: string;
-  routeAlertsPreview: Array<{ index: number; ts: number; score: number; reason: string }>;
-  onOpenRoute: () => void;
-  onClearRoute: () => void;
-  selectedPoi: Poi | null;
-  poiIsFavorite: boolean;
-  onOpenPoi: () => void;
-  onClearPoi: () => void;
-};
-
-export default function OverviewTab({
-  ctx,
-  weatherLocationName,
-  miniWeather,
-  useNauticalUnits,
-  onOpenWeather,
-  routeProfile,
-  onRouteProfileChange,
-  routeBadge,
-  overviewRouteSubtitle,
-  routeAlertsPreview,
-  onOpenRoute,
-  onClearRoute,
-  selectedPoi,
-  poiIsFavorite,
-  onOpenPoi,
-  onClearPoi,
-}: OverviewTabProps) {
   return (
     <div className="space-y-3">
       <Accordion
@@ -62,7 +40,7 @@ export default function OverviewTab({
             <div className="pb-3 space-y-2">
               {ctx.hasWeather ? (
                 <div className="space-y-2">
-                  <div className="text-sm text-muted-foreground">{weatherLocationName}</div>
+                  <div className="text-sm text-muted-foreground">{weatherLocation?.name}</div>
                   {miniWeather?.status === "loading" ? (
                     <div className="h-10 rounded-xl bg-muted animate-pulse" />
                   ) : miniWeather?.status === "ready" ? (
@@ -102,7 +80,7 @@ export default function OverviewTab({
               )}
               {ctx.hasWeather && (
                 <div className="pt-1">
-                  <HubButton variant="outline" size="sm" onClick={onOpenWeather}>
+                  <HubButton variant="outline" size="sm" onClick={() => setTab("weather")}>
                     Voir détails
                   </HubButton>
                 </div>
@@ -146,7 +124,7 @@ export default function OverviewTab({
                       key={`${a.index}-${a.ts}`}
                       type="button"
                       className="w-full rounded-xl border bg-muted/20 px-3 py-2 text-left hover:bg-muted/30"
-                      onClick={onOpenRoute}
+                      onClick={() => setTab("route")}
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="text-xs font-medium text-foreground">
@@ -161,7 +139,7 @@ export default function OverviewTab({
               )}
               {ctx.hasRoute && (
                 <div className="pt-1 flex items-center gap-2">
-                  <HubButton variant="outline" size="sm" onClick={onOpenRoute}>
+                  <HubButton variant="outline" size="sm" onClick={() => setTab("route")}>
                     Inspecter
                   </HubButton>
                   <HubButton variant="ghost" size="sm" onClick={onClearRoute}>
@@ -195,7 +173,7 @@ export default function OverviewTab({
               )}
               {ctx.hasPoi && (
                 <div className="pt-1 flex items-center gap-2">
-                  <HubButton variant="outline" size="sm" onClick={onOpenPoi}>
+                  <HubButton variant="outline" size="sm" onClick={() => setTab("poi")}>
                     Ouvrir
                   </HubButton>
                   <HubButton variant="ghost" size="sm" onClick={onClearPoi}>

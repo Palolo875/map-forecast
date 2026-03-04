@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { HugeiconsIcon, Search01Icon, Location01Icon, Cancel01Icon } from "@/components/icons";
 import { PHOTON_BASE_URL, fetchJson, formatApiError } from "@/lib/api";
 import { toast } from "@/components/ui/sonner";
+import type { PhotonResponse } from "@/features/geocode/photon";
 
 interface SearchResult {
   name: string;
@@ -16,19 +17,11 @@ interface SearchBarProps {
   onSelect: (lat: number, lng: number, name: string) => void;
 }
 
-type PhotonFeature = {
-  properties?: { name?: string; city?: string; state?: string; country?: string };
-  geometry?: { coordinates?: [number, number] };
-};
-
-type PhotonResponse = {
-  features?: PhotonFeature[];
-};
-
 const SearchBar = ({ onSelect }: SearchBarProps) => {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [open, setOpen] = useState(false);
+  const resultsId = "searchbar-results";
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
   const requestRef = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
@@ -107,13 +100,36 @@ const SearchBar = ({ onSelect }: SearchBarProps) => {
         <input
           value={query}
           onChange={(e) => search(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              setOpen(false);
+              return;
+            }
+            if (e.key === "Enter") {
+              if (open && results.length > 0) {
+                e.preventDefault();
+                handleSelect(results[0]);
+              }
+              return;
+            }
+            if (e.key === "ArrowDown") {
+              if (results.length > 0) setOpen(true);
+            }
+          }}
           placeholder="Rechercher un lieu..."
+          aria-label="Rechercher un lieu"
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={open}
+          aria-controls={resultsId}
           className="flex-1 bg-transparent text-[15px] text-foreground placeholder:text-muted-foreground outline-none"
         />
         {query && (
           <button
+            type="button"
             onClick={() => { setQuery(""); setResults([]); setOpen(false); }}
             className="text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Effacer la recherche"
           >
             <HugeiconsIcon icon={Cancel01Icon} size={16} strokeWidth={1.5} />
           </button>
@@ -121,10 +137,16 @@ const SearchBar = ({ onSelect }: SearchBarProps) => {
       </div>
 
       {open && (
-        <div className="absolute top-full left-0 right-0 mt-2 float-card-sm overflow-hidden z-50 animate-float-in">
+        <div
+          id={resultsId}
+          role="listbox"
+          className="absolute top-full left-0 right-0 mt-2 float-card-sm overflow-hidden z-50 animate-float-in"
+        >
           {results.map((r, i) => (
             <button
               key={i}
+              type="button"
+              role="option"
               onClick={() => handleSelect(r)}
               className="flex items-center gap-3 w-full px-5 py-3 text-left text-[15px] hover:bg-muted/50 transition-colors"
             >

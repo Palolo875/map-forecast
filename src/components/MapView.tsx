@@ -22,6 +22,9 @@ interface MapViewProps {
 const STYLE_ROAD_LIGHT = "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
 const STYLE_ROAD_DARK = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
 
+const DEFAULT_CENTER: [number, number] = [2.35, 48.85];
+const DEFAULT_ZOOM = 5;
+
 function rasterStyle(tiles: string[], attribution?: string, showHillshading = false) {
   const style: maplibregl.StyleSpecification = {
     version: 8 as const,
@@ -97,6 +100,7 @@ const MapView = ({
   const poiMarkersRef = useRef<maplibregl.Marker[]>([]);
   const [ready, setReady] = useState(false);
   const [styleTick, setStyleTick] = useState(0);
+  const [mapError, setMapError] = useState<string | null>(null);
   const { setMap } = useMap();
 
   const isHighContrast = mapTheme === "high-contrast";
@@ -119,8 +123,8 @@ const MapView = ({
       );
     }
 
-    if (wantsDark) return STYLE_ROAD_DARK;
-    return STYLE_ROAD_LIGHT;
+    if (wantsDark) return "https://basemaps.cartocdn.com/gl/dark-matter-nolabels-gl-style/style.json";
+    return "https://basemaps.cartocdn.com/gl/positron-nolabels-gl-style/style.json";
   }, [isNight, mapMode, mapTheme]);
 
   function mapAutoTheme(theme: MapViewProps["mapTheme"]) {
@@ -131,7 +135,7 @@ const MapView = ({
     if (markerRef.current) markerRef.current.remove();
 
     const el = document.createElement("div");
-    el.className = "map-marker marker-pulse";
+    el.className = "map-marker marker-pulse grainy-overlay";
 
     markerRef.current = new maplibregl.Marker({ element: el })
       .setLngLat([lng, lat])
@@ -144,8 +148,8 @@ const MapView = ({
     const map = new maplibregl.Map({
       container: mapContainer.current,
       style: STYLE_ROAD_LIGHT,
-      center: [2.35, 48.85],
-      zoom: 5,
+      center: DEFAULT_CENTER,
+      zoom: DEFAULT_ZOOM,
       attributionControl: false,
       fadeDuration: 300, // Smooth transition between styles
     });
@@ -159,10 +163,18 @@ const MapView = ({
       "bottom-right"
     );
 
-    const onLoad = () => setReady(true);
+    const onLoad = () => {
+      setMapError(null);
+      setReady(true);
+    };
     const onStyleData = () => setStyleTick((t) => t + 1);
+    const onError = (e: maplibregl.ErrorEvent) => {
+      const msg = e?.error?.message;
+      setMapError(msg || "MAP_STYLE_ERROR");
+    };
     map.on("load", onLoad);
     map.on("styledata", onStyleData);
+    map.on("error", onError);
 
     map.on("click", (e) => {
       const { lng, lat } = e.lngLat;
@@ -175,6 +187,7 @@ const MapView = ({
     return () => {
       map.off("load", onLoad);
       map.off("styledata", onStyleData);
+      map.off("error", onError);
       setMap(null);
       map.remove();
     };
@@ -187,6 +200,7 @@ const MapView = ({
     const nextStyle = resolveStyleUrl();
 
     map.setStyle(nextStyle, { diff: true });
+    map.once("idle", () => setStyleTick((t) => t + 1));
   }, [mapMode, mapTheme, isNight, ready, resolveStyleUrl]);
 
   // Apply visual improvements to text labels when style changes
@@ -195,17 +209,20 @@ const MapView = ({
     const map = mapRef.current;
     if (!map.isStyleLoaded()) return;
 
+    if (mapMode !== "satellite") return;
+
     // Improve text legibility on complex backgrounds (like satellite)
     const layers = map.getStyle().layers;
     if (layers) {
-      layers.forEach(layer => {
-        if (layer.type === 'symbol' && layer.paint) {
-          // Add halos to text for better contrast
-          map.setPaintProperty(layer.id, 'text-halo-width', 1.5);
-          map.setPaintProperty(layer.id, 'text-halo-color', mapMode === 'satellite' ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.8)');
-          if (mapMode === 'satellite') {
-            map.setPaintProperty(layer.id, 'text-color', '#FFFFFF');
-          }
+      layers.forEach((layer) => {
+        if (layer.type !== "symbol") return;
+        if (!layer.layout || !("text-field" in layer.layout)) return;
+        try {
+          map.setPaintProperty(layer.id, "text-halo-width", 1.5);
+          map.setPaintProperty(layer.id, "text-halo-color", "rgba(0,0,0,0.8)");
+          map.setPaintProperty(layer.id, "text-color", "#FFFFFF");
+        } catch {
+          // ignore unsupported paint properties for this layer
         }
       });
     }
@@ -223,18 +240,23 @@ const MapView = ({
       return;
     }
 
-    if (!has && map.getLayer("raster")) {
-      map.addLayer(
-        {
-          id: NIGHT_OVERLAY_LAYER_ID,
-          type: "background",
-          paint: {
-            "background-color": "#0b0f14",
-            "background-opacity": 0.35,
+    if (!has) {
+      const firstLayerId = map.getStyle().layers?.[0]?.id;
+      try {
+        map.addLayer(
+          {
+            id: NIGHT_OVERLAY_LAYER_ID,
+            type: "background",
+            paint: {
+              "background-color": "#0b0f14",
+              "background-opacity": 0.35,
+            },
           },
-        },
-        NAUTICAL_LAYER_ID,
-      );
+          firstLayerId,
+        );
+      } catch {
+        // ignore if style changes mid-flight
+      }
     }
   }, [isNight, mapTheme, ready, styleTick]);
 
@@ -392,6 +414,8 @@ const MapView = ({
       el.className = "poi-marker";
       if (poi.type === "weather_station") el.dataset.poiType = "weather-station";
       if (selectedPoiId && poi.id === selectedPoiId) el.dataset.selected = "true";
+      el.setAttribute("aria-label", poi.name ? `Sélectionner ${poi.name}` : "Sélectionner un point d’intérêt");
+      el.setAttribute("aria-pressed", selectedPoiId && poi.id === selectedPoiId ? "true" : "false");
 
       el.addEventListener("click", (e) => {
         e.preventDefault();
@@ -406,7 +430,15 @@ const MapView = ({
   }, [pois, onPoiSelect, ready, selectedPoiId]);
 
   return (
-    <div ref={mapContainer} className="absolute inset-0 rounded-3xl overflow-hidden shadow-inner" />
+    <div ref={mapContainer} className="absolute inset-0 rounded-3xl overflow-hidden grainy-overlay">
+      {mapError && (
+        <div className="absolute inset-0 flex items-center justify-center bg-background/40 misty-glass">
+          <div className="px-5 py-3 text-[13px] text-muted-foreground/80">
+            Impossible de charger la carte. Réessaie dans un instant.
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 

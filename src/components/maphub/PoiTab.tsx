@@ -2,19 +2,15 @@ import type { Poi } from "@/features/poi/types";
 import POIInspector from "@/components/poi/POIInspector";
 import { Separator } from "@/components/ui/separator";
 import { HubButton } from "@/components/maphub/shared";
+import { useMapHub } from "@/components/maphub/MapHubContext";
 
-type PoiTabProps = {
-  selectedPoi: Poi | null;
-  onClearPoi: () => void;
-  onRequestWeatherAt: (lat: number, lng: number, name: string) => void;
-  onBack: () => void;
-};
+export default function PoiTab() {
+  const { selectedPoi, onClearPoi, onRequestWeatherAt, setTab } = useMapHub();
 
-export default function PoiTab({ selectedPoi, onClearPoi, onRequestWeatherAt, onBack }: PoiTabProps) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
-        <HubButton variant="outline" size="sm" onClick={onBack}>
+        <HubButton variant="outline" size="sm" onClick={() => setTab("overview")}>
           Retour
         </HubButton>
         <HubButton variant="ghost" size="sm" onClick={onClearPoi}>

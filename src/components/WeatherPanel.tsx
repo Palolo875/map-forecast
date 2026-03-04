@@ -134,7 +134,12 @@ const WeatherPanel = ({ lat, lng, locationName, onClose, embedded, useNauticalUn
         <div className="flex items-center justify-between mb-4">
           <div className="h-4 w-32 bg-muted rounded-full animate-pulse" />
           {!embedded && (
-            <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Fermer la météo"
+            >
               <HugeiconsIcon icon={Cancel01Icon} size={16} strokeWidth={1.5} />
             </button>
           )}
@@ -159,7 +164,12 @@ const WeatherPanel = ({ lat, lng, locationName, onClose, embedded, useNauticalUn
             {locationName}
           </h3>
           {!embedded && (
-            <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Fermer la météo"
+            >
               <HugeiconsIcon icon={Cancel01Icon} size={16} strokeWidth={1.5} />
             </button>
           )}
@@ -190,7 +200,12 @@ const WeatherPanel = ({ lat, lng, locationName, onClose, embedded, useNauticalUn
           {locationName}
         </h3>
         {!embedded && (
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Fermer la météo"
+          >
             <HugeiconsIcon icon={Cancel01Icon} size={16} strokeWidth={1.5} />
           </button>
         )}
@@ -260,7 +275,7 @@ const WeatherPanel = ({ lat, lng, locationName, onClose, embedded, useNauticalUn
 };
 
 const StatCard = ({ icon, label, value }: { icon: IconSvgElement; label: string; value: string }) => (
-  <div className="float-card-sm px-3.5 py-3 flex items-center gap-2.5">
+  <div className="float-card-sm px-4 py-3 flex items-center gap-3">
     <HugeiconsIcon icon={icon} size={16} className="text-primary shrink-0" strokeWidth={1.5} />
     <div>
       <p className="text-[11px] text-muted-foreground leading-none mb-0.5">{label}</p>

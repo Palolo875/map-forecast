@@ -12,12 +12,36 @@ import WeatherTab from "@/components/maphub/WeatherTab";
 import RouteTab from "@/components/maphub/RouteTab";
 import PoiTab from "@/components/maphub/PoiTab";
 import { clampTab, HubButton, HubTab } from "@/components/maphub/shared";
+import { MapHubProvider, type HubWeatherLocation } from "@/components/maphub/MapHubContext";
 
-export type HubWeatherLocation = {
-  lat: number;
-  lng: number;
-  name: string;
-};
+function HubTabSwitcher({
+  tab,
+  onTabChange,
+  hasWeather,
+  hasRoute,
+  hasPoi,
+}: {
+  tab: HubTab;
+  onTabChange: (next: HubTab) => void;
+  hasWeather: boolean;
+  hasRoute: boolean;
+  hasPoi: boolean;
+}) {
+  return (
+    <ToggleGroup type="single" value={tab} onValueChange={(v) => onTabChange(((v as HubTab) || "overview") as HubTab)} variant="outline" size="sm" className="justify-start">
+      <ToggleGroupItem value="overview">Aperçu</ToggleGroupItem>
+      <ToggleGroupItem value="weather" disabled={!hasWeather}>
+        Météo
+      </ToggleGroupItem>
+      <ToggleGroupItem value="route" disabled={!hasRoute}>
+        Trajet
+      </ToggleGroupItem>
+      <ToggleGroupItem value="poi" disabled={!hasPoi}>
+        POI
+      </ToggleGroupItem>
+    </ToggleGroup>
+  );
+}
 
 type MapHubProps = {
   weatherLocation: HubWeatherLocation | null;
@@ -153,6 +177,80 @@ export default function MapHub({
     return "—";
   }, [route, routeAnalysis?.samples, routeError, routeStatus]);
 
+  const value = useMemo(
+    () => ({
+      tab,
+      setTab: (next: HubTab) => setTab(clampTab(next, ctx)),
+      ctx,
+
+      weatherLocation,
+      onClearWeather,
+      miniWeather,
+
+      selectedPoi,
+      poiIsFavorite,
+      onClearPoi,
+      onRequestWeatherAt,
+
+      routeStops,
+      onRemoveRouteStop,
+      onMoveRouteStop,
+
+      routeAddMode,
+      onRouteAddModeChange,
+
+      routeProfile,
+      onRouteProfileChange,
+
+      routeStatus,
+      routeError,
+      route,
+      routeAnalysis,
+      departureTs,
+      onDepartureTsChange,
+      onClearRoute,
+
+      navStepIndex,
+      setNavStepIndex,
+
+      useNauticalUnits,
+
+      routeBadge,
+      overviewRouteSubtitle,
+      routeAlertsPreview,
+    }),
+    [
+      ctx,
+      departureTs,
+      miniWeather,
+      navStepIndex,
+      onClearPoi,
+      onClearRoute,
+      onClearWeather,
+      onDepartureTsChange,
+      onMoveRouteStop,
+      onRemoveRouteStop,
+      onRequestWeatherAt,
+      onRouteAddModeChange,
+      onRouteProfileChange,
+      poiIsFavorite,
+      route,
+      routeAddMode,
+      routeAlertsPreview,
+      routeAnalysis,
+      routeBadge,
+      routeError,
+      routeProfile,
+      routeStatus,
+      routeStops,
+      selectedPoi,
+      tab,
+      useNauticalUnits,
+      weatherLocation,
+      overviewRouteSubtitle,
+    ],
+  );
+
   return (
     <ResponsiveInspector
       open
@@ -162,138 +260,53 @@ export default function MapHub({
       nonModal
       className="pointer-events-auto"
     >
-      <div className="space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <ToggleGroup
-            type="single"
-            value={tab}
-            onValueChange={(v) => {
-              const next = (v as HubTab) || "overview";
-              setTab(clampTab(next, ctx));
-            }}
-            variant="outline"
-            size="sm"
-            className="justify-start"
-          >
-            <ToggleGroupItem value="overview">Aperçu</ToggleGroupItem>
-            <ToggleGroupItem value="weather" disabled={!ctx.hasWeather}>
-              Météo
-            </ToggleGroupItem>
-            <ToggleGroupItem value="route" disabled={!ctx.hasRoute}>
-              Trajet
-            </ToggleGroupItem>
-            <ToggleGroupItem value="poi" disabled={!ctx.hasPoi}>
-              POI
-            </ToggleGroupItem>
-          </ToggleGroup>
+      <MapHubProvider value={value}>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <HubTabSwitcher
+              tab={tab}
+              onTabChange={(next) => setTab(clampTab(next, ctx))}
+              hasWeather={ctx.hasWeather}
+              hasRoute={ctx.hasRoute}
+              hasPoi={ctx.hasPoi}
+            />
 
-          {(ctx.hasWeather || ctx.hasRoute || ctx.hasPoi) && (
-            <HubButton
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                onClearWeather();
-                onClearRoute();
-                onClearPoi();
-                setTab("overview");
-              }}
-            >
-              Tout effacer
-            </HubButton>
-          )}
-        </div>
-
-        {isMobile && (
-          <div className="sticky bottom-0 -mx-5 pt-2 pb-3 bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/70">
-            <div className="px-5">
-              <ToggleGroup
-                type="single"
-                value={tab}
-                onValueChange={(v) => {
-                  const next = (v as HubTab) || "overview";
-                  setTab(clampTab(next, ctx));
-                }}
-                variant="outline"
+            {(ctx.hasWeather || ctx.hasRoute || ctx.hasPoi) && (
+              <HubButton
+                variant="ghost"
                 size="sm"
-                className="justify-start"
+                onClick={() => {
+                  onClearWeather();
+                  onClearRoute();
+                  onClearPoi();
+                  setTab("overview");
+                }}
               >
-                <ToggleGroupItem value="overview">Aperçu</ToggleGroupItem>
-                <ToggleGroupItem value="weather" disabled={!ctx.hasWeather}>
-                  Météo
-                </ToggleGroupItem>
-                <ToggleGroupItem value="route" disabled={!ctx.hasRoute}>
-                  Trajet
-                </ToggleGroupItem>
-                <ToggleGroupItem value="poi" disabled={!ctx.hasPoi}>
-                  POI
-                </ToggleGroupItem>
-              </ToggleGroup>
-            </div>
+                Tout effacer
+              </HubButton>
+            )}
           </div>
-        )}
 
-        {tab === "overview" && (
-          <OverviewTab
-            ctx={ctx}
-            weatherLocationName={weatherLocation?.name}
-            miniWeather={miniWeather}
-            useNauticalUnits={useNauticalUnits}
-            onOpenWeather={() => setTab("weather")}
-            routeProfile={routeProfile}
-            onRouteProfileChange={onRouteProfileChange}
-            routeBadge={routeBadge ?? undefined}
-            overviewRouteSubtitle={overviewRouteSubtitle}
-            routeAlertsPreview={routeAlertsPreview}
-            onOpenRoute={() => setTab("route")}
-            onClearRoute={onClearRoute}
-            selectedPoi={selectedPoi}
-            poiIsFavorite={poiIsFavorite}
-            onOpenPoi={() => setTab("poi")}
-            onClearPoi={onClearPoi}
-          />
-        )}
+          {isMobile && (
+            <div className="sticky bottom-0 -mx-5 pt-2 pb-3 bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/70">
+              <div className="px-5">
+                <HubTabSwitcher
+                  tab={tab}
+                  onTabChange={(next) => setTab(clampTab(next, ctx))}
+                  hasWeather={ctx.hasWeather}
+                  hasRoute={ctx.hasRoute}
+                  hasPoi={ctx.hasPoi}
+                />
+              </div>
+            </div>
+          )}
 
-        {tab === "weather" && (
-          <WeatherTab
-            weatherLocation={weatherLocation}
-            onClearWeather={onClearWeather}
-            onBack={() => setTab("overview")}
-            useNauticalUnits={useNauticalUnits}
-          />
-        )}
-
-        {tab === "route" && (
-          <RouteTab
-            routeStops={routeStops}
-            routeAddMode={routeAddMode}
-            onRouteAddModeChange={onRouteAddModeChange}
-            routeProfile={routeProfile}
-            onRouteProfileChange={onRouteProfileChange}
-            routeStatus={routeStatus}
-            routeError={routeError}
-            route={route}
-            routeAnalysis={routeAnalysis}
-            departureTs={departureTs}
-            onDepartureTsChange={onDepartureTsChange}
-            onClearRoute={onClearRoute}
-            onRemoveRouteStop={onRemoveRouteStop}
-            onMoveRouteStop={onMoveRouteStop}
-            navStepIndex={navStepIndex}
-            onNavStepIndexChange={setNavStepIndex}
-            onBack={() => setTab("overview")}
-            useNauticalUnits={useNauticalUnits}
-          />
-        )}
-
-        {tab === "poi" && (
-          <PoiTab
-            selectedPoi={selectedPoi}
-            onClearPoi={onClearPoi}
-            onRequestWeatherAt={onRequestWeatherAt}
-            onBack={() => setTab("overview")}
-          />
-        )}
-      </div>
+          {tab === "overview" && <OverviewTab />}
+          {tab === "weather" && <WeatherTab />}
+          {tab === "route" && <RouteTab />}
+          {tab === "poi" && <PoiTab />}
+        </div>
+      </MapHubProvider>
     </ResponsiveInspector>
   );
 }

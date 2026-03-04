@@ -1,20 +1,16 @@
 import WeatherPanel from "@/components/WeatherPanel";
 import { HubButton } from "@/components/maphub/shared";
+import { useMapHub } from "@/components/maphub/MapHubContext";
 
-type WeatherTabProps = {
-  weatherLocation: { lat: number; lng: number; name: string } | null;
-  onClearWeather: () => void;
-  onBack: () => void;
-  useNauticalUnits?: boolean;
-};
+export default function WeatherTab() {
+  const { weatherLocation, onClearWeather, setTab, useNauticalUnits } = useMapHub();
 
-export default function WeatherTab({ weatherLocation, onClearWeather, onBack, useNauticalUnits }: WeatherTabProps) {
   return (
     <div className="space-y-3">
       {weatherLocation ? (
         <>
           <div className="flex items-center justify-between gap-3">
-            <HubButton variant="outline" size="sm" onClick={onBack}>
+            <HubButton variant="outline" size="sm" onClick={() => setTab("overview")}>
               Retour
             </HubButton>
             <HubButton variant="ghost" size="sm" onClick={onClearWeather}>

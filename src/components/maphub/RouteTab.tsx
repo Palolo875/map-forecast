@@ -3,60 +3,69 @@ import type { RouteResult } from "@/features/route/valhalla";
 import RouteInspector from "@/components/route/RouteInspector";
 import TurnByTurn from "@/components/route/TurnByTurn";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { HubButton } from "@/components/maphub/shared";
+import { useMapHub } from "@/components/maphub/MapHubContext";
 
-type RouteTabProps = {
-  routeStops: Array<{ name: string }>;
-  routeAddMode: "start" | "via" | "end";
-  onRouteAddModeChange: (next: "start" | "via" | "end") => void;
-  routeProfile: "auto" | "bicycle" | "pedestrian";
-  onRouteProfileChange: (next: "auto" | "bicycle" | "pedestrian") => void;
-  routeStatus: "idle" | "loading" | "error" | "ready";
-  routeError?: string;
-  route: RouteResult | null;
-  routeAnalysis: RouteAnalysis | null;
-  departureTs: number;
-  onDepartureTsChange: (nextDepartureTs: number) => void;
-  onClearRoute: () => void;
-  onRemoveRouteStop: (index: number) => void;
-  onMoveRouteStop: (index: number, dir: -1 | 1) => void;
-  navStepIndex: number;
-  onNavStepIndexChange: (next: number) => void;
-  onBack: () => void;
-  useNauticalUnits?: boolean;
-};
+export default function RouteTab() {
+  const {
+    routeStops,
+    routeAddMode,
+    onRouteAddModeChange,
+    routeProfile,
+    onRouteProfileChange,
+    routeStatus,
+    routeError,
+    route,
+    routeAnalysis,
+    departureTs,
+    onDepartureTsChange,
+    onClearRoute,
+    onRemoveRouteStop,
+    onMoveRouteStop,
+    navStepIndex,
+    setNavStepIndex,
+    setTab,
+    useNauticalUnits,
+  } = useMapHub();
 
-export default function RouteTab({
-  routeStops,
-  routeAddMode,
-  onRouteAddModeChange,
-  routeProfile,
-  onRouteProfileChange,
-  routeStatus,
-  routeError,
-  route,
-  routeAnalysis,
-  departureTs,
-  onDepartureTsChange,
-  onClearRoute,
-  onRemoveRouteStop,
-  onMoveRouteStop,
-  navStepIndex,
-  onNavStepIndexChange,
-  onBack,
-  useNauticalUnits,
-}: RouteTabProps) {
   const routeProfileLabel = routeProfile === "bicycle" ? "Vélo" : routeProfile === "pedestrian" ? "Marche" : "Voiture";
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
-        <HubButton variant="outline" size="sm" onClick={onBack}>
+        <HubButton variant="outline" size="sm" onClick={() => setTab("overview")}>
           Retour
         </HubButton>
-        <HubButton variant="ghost" size="sm" onClick={onClearRoute}>
-          Fermer
-        </HubButton>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <HubButton variant="ghost" size="sm" type="button">
+              Fermer
+            </HubButton>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Supprimer le trajet ?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Cette action supprime l’itinéraire et l’analyse associée.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Annuler</AlertDialogCancel>
+              <AlertDialogAction onClick={onClearRoute}>Supprimer</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
       <div className="flex items-center justify-between gap-3">
         <div className="text-xs text-muted-foreground">Mode</div>
@@ -146,7 +155,7 @@ export default function RouteTab({
       )}
 
       {route && (route.maneuvers?.length ?? 0) > 0 && (
-        <TurnByTurn route={route} stepIndex={navStepIndex} onStepIndexChange={onNavStepIndexChange} useNauticalUnits={useNauticalUnits} />
+        <TurnByTurn route={route} stepIndex={navStepIndex} onStepIndexChange={setNavStepIndex} useNauticalUnits={useNauticalUnits} />
       )}
 
       <RouteInspector

@@ -6,24 +6,20 @@ import { POI_DATASET } from "@/features/poi/dataset";
 import type { Poi } from "@/features/poi/types";
 import MapHub from "@/components/MapHub";
 import MapLayerSelector from "@/components/MapLayerSelector";
+import ThemeToggle from "@/components/ThemeToggle";
 import { createValhallaAdapter } from "@/features/route/providers/ValhallaAdapter";
 import { useRouteState } from "@/hooks/use-route-state";
 import { useMapSettings } from "@/hooks/use-map-settings";
+import { useOnlineStatus } from "@/hooks/use-online-status";
 import { fetchJson, PHOTON_BASE_URL, formatApiError } from "@/lib/api";
 import { toast } from "@/components/ui/sonner";
-
-type PhotonReverseFeature = {
-  properties?: { name?: string; city?: string; country?: string };
-};
-
-type PhotonReverseResponse = {
-  features?: PhotonReverseFeature[];
-};
+import type { PhotonReverseResponse } from "@/features/geocode/photon";
 
 const Index = () => {
   const routingProvider = useRef(createValhallaAdapter());
 
   const [flyTo, setFlyTo] = useState<{ lng: number; lat: number } | null>(null);
+  const [hasInteracted, setHasInteracted] = useState(false);
   const [weatherLocation, setWeatherLocation] = useState<{
     lat: number;
     lng: number;
@@ -69,7 +65,10 @@ const Index = () => {
     setMapNauticalOverlay,
   } = useMapSettings(resolveRefLocation);
 
+  const isOnline = useOnlineStatus();
+
   const handleMapClick = useCallback(async (lng: number, lat: number) => {
+    setHasInteracted(true);
     let name = `${lat.toFixed(3)}, ${lng.toFixed(3)}`;
     try {
       const data = await fetchJson<PhotonReverseResponse>(
@@ -89,6 +88,7 @@ const Index = () => {
   }, [applySelectionToStops]);
 
   const handleSearchSelect = useCallback((lat: number, lng: number, name: string) => {
+    setHasInteracted(true);
     setFlyTo({ lng, lat });
     setWeatherLocation({ lat, lng, name });
 
@@ -96,6 +96,7 @@ const Index = () => {
   }, [applySelectionToStops]);
 
   const handlePoiSelect = useCallback((poi: Poi) => {
+    setHasInteracted(true);
     setSelectedPoi(poi);
     setFlyTo({ lng: poi.position.lng, lat: poi.position.lat });
   }, []);
@@ -130,6 +131,15 @@ const Index = () => {
 
         {/* Search */}
         <SearchBar onSelect={handleSearchSelect} />
+
+        {/* App Theme Toggle */}
+        <ThemeToggle />
+
+        {!isOnline && (
+          <div className="float-card-sm px-3 py-2 flex items-center gap-2 text-[11px] text-destructive font-medium animate-fade-in shrink-0">
+            <span>Hors ligne</span>
+          </div>
+        )}
 
         {/* Map Layer Selector — single button opening popover */}
         <MapLayerSelector
@@ -180,7 +190,7 @@ const Index = () => {
       </div>
 
       {/* Hint when no location selected */}
-      {!weatherLocation && (
+      {!weatherLocation && !hasInteracted && (
         <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-10 animate-fade-in">
           <div className="float-card-sm px-5 py-3 text-[13px] text-muted-foreground">
             Cliquez sur la carte ou recherchez un lieu pour voir la météo

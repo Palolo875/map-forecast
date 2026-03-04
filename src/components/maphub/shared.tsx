@@ -49,5 +49,15 @@ export function HubButton({
   className,
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant: ButtonProps["variant"]; size?: ButtonProps["size"] }) {
-  return <button className={cn(buttonVariants({ variant, size: size ?? "default" }), className)} {...props} />;
+  return (
+    <button 
+      className={cn(
+        buttonVariants({ variant, size: size ?? "default" }), 
+        "transition-all duration-300 active:scale-95 grainy-overlay",
+        variant === "outline" && "border-white/10 hover:bg-white/5",
+        className
+      )} 
+      {...props} 
+    />
+  );
 }
