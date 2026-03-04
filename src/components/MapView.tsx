@@ -131,14 +131,7 @@ const MapView = ({
     if (markerRef.current) markerRef.current.remove();
 
     const el = document.createElement("div");
-    el.className = "marker-pulse";
-    el.style.width = "24px";
-    el.style.height = "24px";
-    el.style.borderRadius = "50%";
-    el.style.background = "#9ED9C6";
-    el.style.border = "4px solid #FAF8F4";
-    el.style.boxShadow = "0 4px 16px rgba(158,217,198,0.6)";
-    el.style.transition = "transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)";
+    el.className = "map-marker marker-pulse";
 
     markerRef.current = new maplibregl.Marker({ element: el })
       .setLngLat([lng, lat])
@@ -397,21 +390,8 @@ const MapView = ({
       const el = document.createElement("button");
       el.type = "button";
       el.className = "poi-marker";
-      el.style.width = "18px";
-      el.style.height = "18px";
-      el.style.borderRadius = "999px";
-      el.style.border = "3px solid #FAF8F4";
-      el.style.boxShadow = "0 3px 12px rgba(0,0,0,0.15)";
-      el.style.background = poi.type === "weather_station" ? "#FFCB5E" : "#9ED9C6";
-      el.style.cursor = "pointer";
-      el.style.transition = "all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)";
-
-      if (selectedPoiId && poi.id === selectedPoiId) {
-        el.style.transform = "scale(1.4)";
-        el.style.boxShadow = "0 8px 24px rgba(0,0,0,0.25)";
-        el.style.zIndex = "10";
-        el.style.borderColor = "#FFFFFF";
-      }
+      if (poi.type === "weather_station") el.dataset.poiType = "weather-station";
+      if (selectedPoiId && poi.id === selectedPoiId) el.dataset.selected = "true";
 
       el.addEventListener("click", (e) => {
         e.preventDefault();

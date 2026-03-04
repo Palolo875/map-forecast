@@ -17,6 +17,7 @@ import {
   WindTurbineIcon,
 } from "@/components/icons";
 import type { IconSvgElement } from "@/components/icons";
+import { fetchJson, OPEN_METEO_BASE_URL, formatApiError } from "@/lib/api";
 
 interface WeatherData {
   temperature: number;
@@ -62,8 +63,6 @@ type OpenMeteoWeatherResponse = {
   };
 };
 
-const OPEN_METEO_BASE_URL = import.meta.env.VITE_OPEN_METEO_BASE_URL ?? "https://api.open-meteo.com";
-
 const getWeatherInfo = (code: number): { label: string; icon: IconSvgElement; color: string } => {
   if (code === 0) return { label: "Dégagé", icon: Sun03Icon, color: "text-weather-sun" };
   if (code <= 3) return { label: "Nuageux", icon: CloudIcon, color: "text-muted-foreground" };
@@ -79,17 +78,15 @@ const getWeatherInfo = (code: number): { label: string; icon: IconSvgElement; co
 const WeatherPanel = ({ lat, lng, locationName, onClose, embedded, useNauticalUnits }: WeatherPanelProps) => {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
+    setError(null);
     const url = `${OPEN_METEO_BASE_URL}/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,precipitation&daily=temperature_2m_max,temperature_2m_min&hourly=temperature_2m,weather_code&timezone=auto&forecast_days=1`;
 
-    fetch(url, { signal: controller.signal })
-      .then((r) => {
-        if (!r.ok) throw new Error(`OPEN_METEO_${r.status}`);
-        return r.json();
-      })
+    fetchJson<OpenMeteoWeatherResponse>(url, "open-meteo", { signal: controller.signal })
       .then((data) => {
         const payload = data as OpenMeteoWeatherResponse;
         const c = payload.current;
@@ -121,7 +118,11 @@ const WeatherPanel = ({ lat, lng, locationName, onClose, embedded, useNauticalUn
         });
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch((e) => {
+        if (e instanceof DOMException && e.name === "AbortError") return;
+        setError(formatApiError(e, "Météo indisponible."));
+        setLoading(false);
+      });
     return () => controller.abort();
   }, [lat, lng]);
 
@@ -144,6 +145,26 @@ const WeatherPanel = ({ lat, lng, locationName, onClose, embedded, useNauticalUn
             <div key={i} className="h-16 bg-muted rounded-2xl animate-pulse" />
           ))}
         </div>
+      </Wrapper>
+    );
+  }
+
+  if (error) {
+    const Wrapper = embedded ? "div" : "div";
+    const wrapperClass = embedded ? "" : "float-card p-6 w-[340px] animate-float-in";
+    return (
+      <Wrapper className={wrapperClass}>
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-[15px] font-semibold text-foreground truncate max-w-[260px]">
+            {locationName}
+          </h3>
+          {!embedded && (
+            <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
+              <HugeiconsIcon icon={Cancel01Icon} size={16} strokeWidth={1.5} />
+            </button>
+          )}
+        </div>
+        <div className="text-[13px] text-muted-foreground">{error}</div>
       </Wrapper>
     );
   }

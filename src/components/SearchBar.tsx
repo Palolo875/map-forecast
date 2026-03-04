@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { HugeiconsIcon, Search01Icon, Location01Icon, Cancel01Icon } from "@/components/icons";
+import { PHOTON_BASE_URL, fetchJson, formatApiError } from "@/lib/api";
+import { toast } from "@/components/ui/sonner";
 
 interface SearchResult {
   name: string;
@@ -22,8 +24,6 @@ type PhotonFeature = {
 type PhotonResponse = {
   features?: PhotonFeature[];
 };
-
-const PHOTON_BASE_URL = import.meta.env.VITE_PHOTON_BASE_URL ?? "https://photon.komoot.io";
 
 const SearchBar = ({ onSelect }: SearchBarProps) => {
   const [query, setQuery] = useState("");
@@ -61,12 +61,11 @@ const SearchBar = ({ onSelect }: SearchBarProps) => {
         if (abortRef.current) abortRef.current.abort();
         const controller = new AbortController();
         abortRef.current = controller;
-        const res = await fetch(
+        const data = await fetchJson<PhotonResponse>(
           `${PHOTON_BASE_URL}/api/?q=${encodeURIComponent(q)}&limit=5&lang=fr`,
+          "photon",
           { signal: controller.signal },
         );
-        if (!res.ok) throw new Error(`PHOTON_${res.status}`);
-        const data = (await res.json()) as PhotonResponse;
         if (requestId !== requestRef.current) return;
         const mapped: SearchResult[] = (data.features ?? [])
           .map((f) => {
@@ -86,8 +85,10 @@ const SearchBar = ({ onSelect }: SearchBarProps) => {
           .filter((r): r is NonNullable<typeof r> => !!r && !!r.name);
         setResults(mapped);
         setOpen(mapped.length > 0);
-      } catch {
+      } catch (e) {
+        if (e instanceof DOMException && e.name === "AbortError") return;
         setResults([]);
+        toast(formatApiError(e, "Recherche indisponible."), { duration: 2500 });
       }
     }, 300);
   };

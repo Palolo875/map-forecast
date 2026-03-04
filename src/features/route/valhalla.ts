@@ -1,6 +1,5 @@
 import type { LatLng, RouteRequest, ValhallaRouteResponse } from "./types";
-
-const VALHALLA_BASE_URL = import.meta.env.VITE_VALHALLA_BASE_URL ?? "https://valhalla1.openstreetmap.de";
+import { fetchJson, VALHALLA_BASE_URL } from "@/lib/api";
 
 export type RouteManeuver = {
   index: number;
@@ -97,17 +96,11 @@ export async function fetchRouteValhalla(req: RouteRequest): Promise<RouteResult
     shape_format: "geojson",
   };
 
-  const res = await fetch(`${VALHALLA_BASE_URL}/route`, {
+  const data = await fetchJson<ValhallaRouteResponse>(`${VALHALLA_BASE_URL}/route`, "valhalla", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   });
-
-  if (!res.ok) {
-    throw new Error(`VALHALLA_${res.status}`);
-  }
-
-  const data = (await res.json()) as ValhallaRouteResponse;
 
   const coords = mergeLegCoordinates((data.trip?.legs as Array<{ shape: unknown }> | undefined) ?? undefined);
   if (!coords) throw new Error("VALHALLA_NO_SHAPE");

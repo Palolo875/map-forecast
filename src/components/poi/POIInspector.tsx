@@ -13,6 +13,8 @@ import {
 import { deletePhoto, getPhotoObjectUrl, savePhoto } from "@/features/poi/photos";
 import { fetchCurrentWeatherSnapshot } from "@/features/poi/weather";
 import type { CurrentWeatherSnapshot } from "@/features/poi/weather";
+import { formatApiError } from "@/lib/api";
+import { toast } from "@/components/ui/sonner";
 import { computeIdealMatchScore } from "@/features/poi/ideal-score";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -96,8 +98,9 @@ export default function POIInspector({ poi, onRequestWeatherAt }: POIInspectorPr
       .then((snap) => {
         if (!cancelled) setCurrentWeather(snap);
       })
-      .catch(() => {
+      .catch((e) => {
         if (!cancelled) setCurrentWeather(null);
+        toast(formatApiError(e, "Météo indisponible."), { duration: 2500 });
       })
       .finally(() => {
         if (!cancelled) setLoadingCurrent(false);
