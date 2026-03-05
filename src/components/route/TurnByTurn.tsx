@@ -28,7 +28,7 @@ type TurnByTurnProps = {
   useNauticalUnits?: boolean;
 };
 
-export default function TurnByTurn({ route, stepIndex, onStepIndexChange }: TurnByTurnProps) {
+export default function TurnByTurn({ route, stepIndex, onStepIndexChange, useNauticalUnits }: TurnByTurnProps) {
   const maneuvers = useMemo(() => route.maneuvers ?? [], [route.maneuvers]);
 
   const [voiceEnabled, setVoiceEnabled] = useState<boolean>(false);

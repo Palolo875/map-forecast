@@ -47,7 +47,7 @@ export function deletePoiNote(poiId: string, noteId: string): { nextState: PoiUs
   const state = loadPoiUserState();
   const prevNotes = state.notesByPoiId[poiId] ?? [];
   const toDelete = prevNotes.find((n) => n.id === noteId);
-  const deletedPhotoIds = toDelete?.photoIds ?? [];
+  const deletedPhotoIds: string[] = [];
   const nextNotes = prevNotes.filter((n) => n.id !== noteId);
 
   const nextState: PoiUserState = {
@@ -85,7 +85,8 @@ export function addPoiNote(poiId: string, text: string, photoIds?: string[]): Po
     poiId,
     createdAt: Date.now(),
     text,
-    photoIds,
+    synced: false,
+    syncedFlag: 0,
   };
 
   const nextNotes = [note, ...(state.notesByPoiId[poiId] ?? [])];

@@ -21,21 +21,32 @@ const SearchBar = ({ onSelect }: SearchBarProps) => {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [open, setOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const resultsId = "searchbar-results";
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
   const requestRef = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setOpen(false);
+        // Collapse if empty
+        if (!query) setExpanded(false);
       }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, []);
+  }, [query]);
+
+  useEffect(() => {
+    if (expanded) {
+      // Small delay so the animation starts before focus
+      requestAnimationFrame(() => inputRef.current?.focus());
+    }
+  }, [expanded]);
 
   const search = (q: string) => {
     setQuery(q);
@@ -90,19 +101,43 @@ const SearchBar = ({ onSelect }: SearchBarProps) => {
     const label = [r.name, r.city, r.country].filter(Boolean).join(", ");
     setQuery(label);
     setOpen(false);
+    setExpanded(false);
     onSelect(r.lat, r.lng, label);
   };
 
+  const handleClear = () => {
+    setQuery("");
+    setResults([]);
+    setOpen(false);
+    setExpanded(false);
+  };
+
+  // Collapsed state: just a search icon button
+  if (!expanded) {
+    return (
+      <button
+        type="button"
+        onClick={() => setExpanded(true)}
+        className="float-card-sm flex items-center justify-center w-11 h-11 shrink-0 hover:bg-accent/10 transition-colors"
+        aria-label="Ouvrir la recherche"
+      >
+        <HugeiconsIcon icon={Search01Icon} size={18} className="text-foreground" strokeWidth={1.5} />
+      </button>
+    );
+  }
+
   return (
-    <div ref={containerRef} className="relative w-full max-w-sm">
+    <div ref={containerRef} className="relative w-full max-w-sm animate-fade-in">
       <div className="float-card-sm flex items-center gap-3 px-5 py-3">
         <HugeiconsIcon icon={Search01Icon} size={18} className="text-muted-foreground" strokeWidth={1.5} />
         <input
+          ref={inputRef}
           value={query}
           onChange={(e) => search(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Escape") {
               setOpen(false);
+              if (!query) setExpanded(false);
               return;
             }
             if (e.key === "Enter") {
@@ -124,16 +159,14 @@ const SearchBar = ({ onSelect }: SearchBarProps) => {
           aria-controls={resultsId}
           className="flex-1 bg-transparent text-[15px] text-foreground placeholder:text-muted-foreground outline-none"
         />
-        {query && (
-          <button
-            type="button"
-            onClick={() => { setQuery(""); setResults([]); setOpen(false); }}
-            className="text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="Effacer la recherche"
-          >
-            <HugeiconsIcon icon={Cancel01Icon} size={16} strokeWidth={1.5} />
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={handleClear}
+          className="text-muted-foreground hover:text-foreground transition-colors"
+          aria-label="Fermer la recherche"
+        >
+          <HugeiconsIcon icon={Cancel01Icon} size={16} strokeWidth={1.5} />
+        </button>
       </div>
 
       {open && (

@@ -178,7 +178,7 @@ export default function MapHub({
   const routeBadge = useMemo(() => {
     const g = routeAnalysis?.globalRisk;
     if (!g) return null;
-    const variant = g.level === "extreme" ? "destructive" : g.level === "high" ? "default" : "secondary";
+    const variant: "default" | "destructive" | "secondary" = g.level === "extreme" ? "destructive" : g.level === "high" ? "default" : "secondary";
     return { variant, label: `${g.score}/100` };
   }, [routeAnalysis?.globalRisk]);
 
@@ -321,7 +321,7 @@ export default function MapHub({
           {tab === "weather" && <WeatherTab />}
           {tab === "route" && <RouteTab />}
           {tab === "poi" && <PoiTab />}
-          {tab === "history" && <HistoryTab />}
+          {/* history tab removed */}
         </div>
       </MapHubProvider>
     </ResponsiveInspector>
