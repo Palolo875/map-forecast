@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Poi } from "@/features/poi/types";
 import type { RouteResult } from "@/features/route/valhalla";
 import type { RouteAnalysis } from "@/features/route/analyze";
-import { loadPoiUserState } from "@/features/poi/storage";
+import { getOverlay } from "@/features/poi/db";
 import ResponsiveInspector from "@/components/ResponsiveInspector";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -11,6 +11,7 @@ import OverviewTab from "@/components/maphub/OverviewTab";
 import WeatherTab from "@/components/maphub/WeatherTab";
 import RouteTab from "@/components/maphub/RouteTab";
 import PoiTab from "@/components/maphub/PoiTab";
+import HistoryTab from "@/components/maphub/HistoryTab";
 import { clampTab, HubButton, HubTab } from "@/components/maphub/shared";
 import { MapHubProvider, type HubWeatherLocation } from "@/components/maphub/MapHubContext";
 
@@ -38,6 +39,9 @@ function HubTabSwitcher({
       </ToggleGroupItem>
       <ToggleGroupItem value="poi" disabled={!hasPoi}>
         POI
+      </ToggleGroupItem>
+      <ToggleGroupItem value="history">
+        Historique
       </ToggleGroupItem>
     </ToggleGroup>
   );
@@ -115,8 +119,20 @@ export default function MapHub({
       setPoiIsFavorite(false);
       return;
     }
-    const state = loadPoiUserState();
-    setPoiIsFavorite(!!state.overlaysByPoiId[selectedPoi.id]?.isFavorite);
+    let cancelled = false;
+    getOverlay(selectedPoi.id)
+      .then((o) => {
+        if (cancelled) return;
+        setPoiIsFavorite(!!o?.isFavorite);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setPoiIsFavorite(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [selectedPoi]);
 
   const title = useMemo(() => {
@@ -305,6 +321,7 @@ export default function MapHub({
           {tab === "weather" && <WeatherTab />}
           {tab === "route" && <RouteTab />}
           {tab === "poi" && <PoiTab />}
+          {tab === "history" && <HistoryTab />}
         </div>
       </MapHubProvider>
     </ResponsiveInspector>

@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import MapView from "@/components/MapView";
 import SearchBar from "@/components/SearchBar";
 import { HugeiconsIcon, SunCloud02Icon } from "@/components/icons";
@@ -14,6 +14,14 @@ import { useOnlineStatus } from "@/hooks/use-online-status";
 import { fetchJson, PHOTON_BASE_URL, formatApiError } from "@/lib/api";
 import { toast } from "@/components/ui/sonner";
 import type { PhotonReverseResponse } from "@/features/geocode/photon";
+import { QuickCapture } from "@/features/poi/QuickCapture";
+import { getAllOverlays, getAllPois } from "@/features/poi/db";
+import type { PoiUserOverlay } from "@/features/poi/types";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
+import { Input } from "@/components/ui/input";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { HubBadge } from "@/components/maphub/shared";
+import { ListFilter } from "lucide-react";
 
 const Index = () => {
   const routingProvider = useRef(createValhallaAdapter());
@@ -26,6 +34,14 @@ const Index = () => {
     name: string;
   } | null>(null);
   const [selectedPoi, setSelectedPoi] = useState<Poi | null>(null);
+
+  const [userPois, setUserPois] = useState<Poi[]>([]);
+  const [favoritePoiIds, setFavoritePoiIds] = useState<Set<string>>(() => new Set());
+  const [overlaysByPoiId, setOverlaysByPoiId] = useState<Record<string, PoiUserOverlay>>({});
+
+  const [poiListOpen, setPoiListOpen] = useState(false);
+  const [poiQuery, setPoiQuery] = useState("");
+  const [poiTypeFilter, setPoiTypeFilter] = useState<string[]>(["refuge", "emergency_shelter", "weather_station", "spot", "note"]);
 
   const {
     routeStops,
@@ -67,6 +83,46 @@ const Index = () => {
 
   const isOnline = useOnlineStatus();
 
+  useEffect(() => {
+    let cancelled = false;
+    const loadUserPoiData = async () => {
+      try {
+        const [poisFromDb, overlays] = await Promise.all([getAllPois(), getAllOverlays()]);
+        if (cancelled) return;
+        setUserPois(poisFromDb.filter((p) => p.source === "user"));
+        setFavoritePoiIds(new Set(overlays.filter((o) => o.isFavorite).map((o) => o.poiId)));
+        setOverlaysByPoiId(Object.fromEntries(overlays.map((o) => [o.poiId, o])));
+      } catch {
+        if (cancelled) return;
+        setUserPois([]);
+        setFavoritePoiIds(new Set());
+        setOverlaysByPoiId({});
+      }
+    };
+
+    loadUserPoiData();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const mergedPois = useMemo(() => {
+    // Dataset remains authoritative for dataset/api POIs; user POIs are additive.
+    const byId = new Map<string, Poi>();
+    for (const p of POI_DATASET) byId.set(p.id, p);
+    for (const p of userPois) byId.set(p.id, p);
+    return Array.from(byId.values());
+  }, [userPois]);
+
+  const filteredPois = useMemo(() => {
+    const q = poiQuery.trim().toLowerCase();
+    return mergedPois.filter((p) => {
+      if (!poiTypeFilter.includes(p.type)) return false;
+      if (!q) return true;
+      return p.name.toLowerCase().includes(q);
+    });
+  }, [mergedPois, poiQuery, poiTypeFilter]);
+
   const handleMapClick = useCallback(async (lng: number, lat: number) => {
     setHasInteracted(true);
     let name = `${lat.toFixed(3)}, ${lng.toFixed(3)}`;
@@ -101,13 +157,17 @@ const Index = () => {
     setFlyTo({ lng: poi.position.lng, lat: poi.position.lat });
   }, []);
 
+  const weatherRisk = routeAnalysis?.globalRisk?.score ?? 0;
+
   return (
     <div className={`relative h-screen w-screen overflow-hidden bg-background ${mapTheme === 'high-contrast' ? 'high-contrast-mode' : ''}`}>
       {/* Map */}
       <MapView
         onMapClick={handleMapClick}
         flyTo={flyTo}
-        pois={POI_DATASET}
+        pois={mergedPois}
+        favoritePoiIds={favoritePoiIds}
+        overlaysByPoiId={overlaysByPoiId}
         onPoiSelect={handlePoiSelect}
         selectedPoiId={selectedPoi?.id ?? null}
         routeLine={route?.line ?? null}
@@ -117,6 +177,7 @@ const Index = () => {
         mapTheme={mapTheme}
         isNight={mapIsNightNow}
         nauticalOverlay={mapNauticalOverlay || mapMode === "nautical"}
+        weatherRisk={weatherRisk}
       />
 
       {/* Top overlay */}
@@ -197,6 +258,67 @@ const Index = () => {
           </div>
         </div>
       )}
+
+      {/* POI List — bottom sheet for search/filter without overloading map */}
+      <div className="absolute bottom-5 left-5 z-20">
+        <Drawer open={poiListOpen} onOpenChange={setPoiListOpen}>
+          <DrawerTrigger asChild>
+            <button
+              type="button"
+              className="float-card-sm px-3 py-2 flex items-center gap-2 text-[11px] text-foreground font-medium hover:bg-accent/10 transition"
+            >
+              <ListFilter className="w-4 h-4 text-primary" />
+              <span>Liste POI</span>
+              <HubBadge>{filteredPois.length}</HubBadge>
+            </button>
+          </DrawerTrigger>
+          <DrawerContent className="misty-glass border-white/10">
+            <DrawerHeader className="text-left">
+              <DrawerTitle className="text-base">Points d’intérêt</DrawerTitle>
+            </DrawerHeader>
+            <div className="px-4 pb-4 space-y-3">
+              <Input value={poiQuery} onChange={(e) => setPoiQuery(e.target.value)} placeholder="Rechercher…" />
+
+              <ToggleGroup
+                type="multiple"
+                value={poiTypeFilter}
+                onValueChange={(v) => setPoiTypeFilter(v as string[])}
+                className="flex flex-wrap justify-start"
+              >
+                <ToggleGroupItem value="refuge">Refuges</ToggleGroupItem>
+                <ToggleGroupItem value="emergency_shelter">Abris</ToggleGroupItem>
+                <ToggleGroupItem value="weather_station">Stations</ToggleGroupItem>
+                <ToggleGroupItem value="spot">Spots</ToggleGroupItem>
+                <ToggleGroupItem value="note">Notes</ToggleGroupItem>
+              </ToggleGroup>
+
+              <div className="max-h-[50vh] overflow-auto rounded-xl border border-white/10">
+                {filteredPois.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    className="w-full px-3 py-3 flex items-center justify-between gap-3 text-left hover:bg-accent/10"
+                    onClick={() => {
+                      handlePoiSelect(p);
+                      setPoiListOpen(false);
+                    }}
+                  >
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium truncate">{p.name}</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        {p.type} · {p.source === "user" ? "perso" : "dataset"}
+                      </div>
+                    </div>
+                    {favoritePoiIds.has(p.id) && (
+                      <span className="text-[11px] font-semibold text-primary">Favori</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </DrawerContent>
+        </Drawer>
+      </div>
     </div>
   );
 };

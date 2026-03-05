@@ -12,12 +12,9 @@ import {
 import { getPhotoObjectUrl } from "@/features/poi/photos";
 import { fetchCurrentWeatherSnapshot } from "@/features/poi/weather";
 import type { CurrentWeatherSnapshot } from "@/features/poi/weather";
-import { fetchHourlyWeatherAt } from "@/features/route/weather";
 import { formatApiError } from "@/lib/api";
 import { toast } from "@/components/ui/sonner";
 import { computeIdealMatchScore } from "@/features/poi/ideal-score";
-import { analyzeTemporalShift } from "@/features/poi/temporal-analysis";
-import { AlertTriangle, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +22,6 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { HugeiconsIcon, Tick02Icon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
@@ -42,7 +38,7 @@ function labelPoiType(type: Poi["type"]) {
     case "note":
       return "Note";
     default:
-      return "Unknown";
+      return "Point d'intérêt";
   }
 }
 
@@ -60,6 +56,7 @@ export default function POIInspector({ poi, onRequestWeatherAt }: POIInspectorPr
   const [overlay, setOverlay] = useState<PoiUserOverlay | null>(null);
   const [notes, setNotes] = useState<PoiNote[]>([]);
   const [visits, setVisits] = useState<PoiVisit[]>([]);
+
   const [noteText, setNoteText] = useState("");
   const [noteFiles, setNoteFiles] = useState<File[]>([]);
   const [notePreviews, setNotePreviews] = useState<string[]>([]);
@@ -69,23 +66,9 @@ export default function POIInspector({ poi, onRequestWeatherAt }: POIInspectorPr
   const [currentWeather, setCurrentWeather] = useState<CurrentWeatherSnapshot | null>(null);
   const [loadingCurrent, setLoadingCurrent] = useState(false);
   const [isOnline, setIsOnline] = useState(() => (typeof navigator !== "undefined" ? navigator.onLine : true));
-  const [stationMode, setStationMode] = useState<"live" | "forecast">("live");
-  const [stationForecast, setStationForecast] = useState<Array<{ ts: number; temperatureC?: number; windSpeedKmh?: number; precipitationMm?: number; windDirectionDeg?: number }>>([]);
-  const [loadingForecast, setLoadingForecast] = useState(false);
 
   const ideal = overlay?.idealWeather;
   const idealMatch = useMemo(() => computeIdealMatchScore(ideal, currentWeather), [ideal, currentWeather]);
-
-  const temporalAnalysis = useMemo(() => {
-    if (!currentWeather || visits.length === 0) return null;
-    // On compare avec la visite la plus récente qui a un snapshot
-    const lastVisitWithWeather = [...visits]
-      .sort((a, b) => b.visitedAt - a.visitedAt)
-      .find(v => v.weatherSnapshot && Object.keys(v.weatherSnapshot).length > 0);
-    
-    if (!lastVisitWithWeather) return null;
-    return analyzeTemporalShift(lastVisitWithWeather, currentWeather);
-  }, [currentWeather, visits]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -141,46 +124,6 @@ export default function POIInspector({ poi, onRequestWeatherAt }: POIInspectorPr
   }, [poi.position.lat, poi.position.lng, isOnline]);
 
   useEffect(() => {
-    let cancelled = false;
-    if (!isOnline || poi.type !== "weather_station") {
-      setLoadingForecast(false);
-      setStationForecast([]);
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    setLoadingForecast(true);
-    const now = Date.now();
-    const targets = [0, 2, 4, 6, 9, 12].map((h) => now + h * 60 * 60 * 1000);
-
-    Promise.all(targets.map((t) => fetchHourlyWeatherAt(poi.position.lat, poi.position.lng, t)))
-      .then((points) => {
-        if (cancelled) return;
-        setStationForecast(
-          points.map((p) => ({
-            ts: p.ts,
-            temperatureC: p.temperatureC,
-            windSpeedKmh: p.windSpeedKmh,
-            precipitationMm: p.precipitationMm,
-          })),
-        );
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setStationForecast([]);
-      })
-      .finally(() => {
-        if (cancelled) return;
-        setLoadingForecast(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isOnline, poi.position.lat, poi.position.lng, poi.type]);
-
-  useEffect(() => {
     const urls = noteFiles.map((f) => URL.createObjectURL(f));
     setNotePreviews(urls);
     return () => {
@@ -228,7 +171,6 @@ export default function POIInspector({ poi, onRequestWeatherAt }: POIInspectorPr
           weatherCode: currentWeather.weatherCode,
         } : undefined,
         synced: false,
-        syncedFlag: 0,
       };
       await saveNote(newNote);
       setNotes((prev) => [newNote, ...prev]);
@@ -261,6 +203,7 @@ export default function POIInspector({ poi, onRequestWeatherAt }: POIInspectorPr
         windSpeedKmh: currentWeather.windSpeedKmh,
         weatherCode: currentWeather.weatherCode,
       } : {};
+      
       const newVisit: PoiVisit = {
         id: crypto.randomUUID(),
         poiId: poi.id,
@@ -316,72 +259,8 @@ export default function POIInspector({ poi, onRequestWeatherAt }: POIInspectorPr
           <TabsTrigger value="history">Historique</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="mt-4 space-y-4">
+        <TabsContent value="overview" className="mt-4">
           <div className="space-y-3">
-            {poi.type === "weather_station" && (
-              <div className="float-card-sm px-4 py-3 space-y-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Station météo</div>
-                  <ToggleGroup type="single" value={stationMode} onValueChange={(v) => setStationMode(((v as typeof stationMode) || "live") as typeof stationMode)}>
-                    <ToggleGroupItem value="live">Live</ToggleGroupItem>
-                    <ToggleGroupItem value="forecast">Prévisions</ToggleGroupItem>
-                  </ToggleGroup>
-                </div>
-
-                {stationMode === "live" ? (
-                  <div className="grid grid-cols-3 gap-2">
-                    <MiniStat label="Temp" value={currentWeather?.temperatureC !== undefined ? `${currentWeather.temperatureC}°C` : "—"} />
-                    <MiniStat label="Vent" value={currentWeather?.windSpeedKmh !== undefined ? `${currentWeather.windSpeedKmh} km/h` : "—"} />
-                    <MiniStat label="Direction" value={currentWeather?.windDirectionDeg !== undefined ? `${currentWeather.windDirectionDeg}°` : "—"} />
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {loadingForecast ? (
-                      <div className="text-sm text-muted-foreground">Chargement des prévisions…</div>
-                    ) : stationForecast.length === 0 ? (
-                      <div className="text-sm text-muted-foreground">Prévisions indisponibles.</div>
-                    ) : (
-                      <div className="rounded-xl border border-white/10 overflow-hidden">
-                        {stationForecast.map((p) => (
-                          <div key={p.ts} className="px-3 py-2 flex items-center justify-between gap-3 hover:bg-accent/5">
-                            <div className="text-[12px] text-muted-foreground">
-                              {new Date(p.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                            </div>
-                            <div className="text-[12px] font-semibold">{p.temperatureC ?? "—"}°</div>
-                            <div className="text-[12px] text-muted-foreground">{p.windSpeedKmh ?? "—"} km/h</div>
-                            <div className="text-[12px] text-muted-foreground">{p.precipitationMm ?? "—"} mm</div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-            {temporalAnalysis && (
-              <div className={cn(
-                "p-3 rounded-xl border flex items-start gap-3 misty-glass",
-                temporalAnalysis.severity === "high" ? "bg-red-500/10 border-red-500/20 text-red-400" :
-                temporalAnalysis.severity === "medium" ? "bg-amber-500/10 border-amber-500/20 text-amber-400" :
-                "bg-blue-500/10 border-blue-500/20 text-blue-400"
-              )}>
-                <div className="mt-0.5">
-                  {temporalAnalysis.trend === "worsening" ? <TrendingDown className="w-4 h-4" /> :
-                   temporalAnalysis.trend === "improving" ? <TrendingUp className="w-4 h-4" /> :
-                   <Minus className="w-4 h-4" />}
-                </div>
-                <div className="space-y-1">
-                  <div className="text-[13px] font-medium leading-tight">
-                    {temporalAnalysis.message}
-                  </div>
-                  <div className="text-[11px] opacity-70 flex gap-2">
-                    <span>Temp: {temporalAnalysis.diff.temp > 0 ? '+' : ''}{temporalAnalysis.diff.temp.toFixed(1)}°C</span>
-                    <span>Vent: {temporalAnalysis.diff.wind > 0 ? '+' : ''}{temporalAnalysis.diff.wind.toFixed(1)} km/h</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {ideal && (
               <div className="float-card overflow-hidden">
                 <div
@@ -427,6 +306,13 @@ export default function POIInspector({ poi, onRequestWeatherAt }: POIInspectorPr
                       {idealMatch.breakdown.cloudCover !== undefined && idealMatch.breakdown.cloudCover >= 80 && <MatchTag label="Ciel dégagé" />}
                     </div>
                   )}
+
+                  <div className="mt-4 grid grid-cols-2 gap-2">
+                    <MiniStat label="Temp" value={currentWeather?.temperatureC !== undefined ? `${currentWeather.temperatureC}°C` : "—"} />
+                    <MiniStat label="Vent" value={currentWeather?.windSpeedKmh !== undefined ? `${currentWeather.windSpeedKmh} km/h` : "—"} />
+                    <MiniStat label="Pluie" value={currentWeather?.precipitationMm !== undefined ? `${currentWeather.precipitationMm} mm` : "—"} />
+                    <MiniStat label="Nuages" value={currentWeather?.cloudCoverPct !== undefined ? `${currentWeather.cloudCoverPct}%` : "—"} />
+                  </div>
                 </div>
               </div>
             )}

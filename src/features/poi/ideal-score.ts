@@ -69,7 +69,7 @@ export function computeIdealMatchScore(ideal: IdealWeather | undefined, current:
     sCloud * weights.cloud;
 
   const score = Math.round(clamp(score01, 0, 1) * 100);
-  const status = score >= 80 ? "good" : score >= 55 ? "ok" : "bad";
+  const status = score >= 80 ? "good" : score >= 50 ? "ok" : "bad";
 
   return {
     score,

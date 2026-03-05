@@ -8,39 +8,39 @@
 
 @layer base {
   :root {
-    /* Misty Neo-Noir UI — Deep Obsidian & Ethereal Textures */
-    --background: 240 10% 3.9%;      /* #0A0A0B */
-    --foreground: 0 0% 98%;          /* #FAFAFA */
+    /* Misty Light Mode — Pearl & Anthracite */
+    --background: 0 0% 96%;           /* #F5F5F5 Misty Pearl */
+    --foreground: 240 10% 12%;        /* #1A1A1C Anthracite */
 
-    --card: 240 10% 6%;              /* #0F0F11 */
-    --card-foreground: 0 0% 98%;
+    --card: 0 0% 100%;                /* Pure White */
+    --card-foreground: 240 10% 12%;
 
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 12%;
 
-    --primary: 202 52% 66%;          /* #7BB4D4 Ether Blue */
-    --primary-foreground: 240 10% 3.9%;
+    --primary: 202 52% 46%;          /* #3D85AE Deeper Ether Blue for contrast */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 240 5% 15%;         /* Dark Grey */
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 240 5% 90%;         /* Light Grey */
+    --secondary-foreground: 240 10% 12%;
 
-    --muted: 240 5% 15%;
-    --muted-foreground: 240 5% 65%;
+    --muted: 240 5% 90%;
+    --muted-foreground: 240 5% 45%;
 
     --accent: 0 74% 88%;             /* #F8C8C8 Soft Blush */
-    --accent-foreground: 240 10% 3.9%;
+    --accent-foreground: 240 10% 12%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 240 5% 15%;
-    --input: 240 5% 15%;
-    --ring: 202 52% 66%;
+    --border: 240 5% 85%;
+    --input: 240 5% 85%;
+    --ring: 202 52% 46%;
 
     --radius: 0.75rem;
 
     /* Extra semantic tokens for the "Misty" style */
-    --misty-white: 0 0% 100% / 0.05;
+    --misty-white: 0 0% 100% / 0.4;
     --misty-grain: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
 
     --space-1: 0.25rem;
@@ -69,11 +69,11 @@
     --ls-tight: -0.02em;
     --ls-normal: 0em;
 
-    /* Custom weather accents */
-    --weather-sun: 37 100% 68%;       /* #FFCB5E */
-    --weather-mint: 160 38% 73%;      /* #9ED9C6 */
-    --weather-orange: 15 100% 71%;    /* #FF9A6B */
-    --weather-lime: 88 65% 63%;       /* #A8E05E */
+    /* Custom weather accents — Refined for Misty Theme */
+    --weather-sun: 37 100% 55%;       /* More vibrant amber */
+    --weather-mint: 160 38% 43%;      /* Forest Mint */
+    --weather-orange: 15 100% 55%;    /* Deep Orange */
+    --weather-lime: 88 55% 43%;       /* Leaf Green */
 
     --sidebar-background: 33 24% 95%;
     --sidebar-foreground: 0 0% 12%;
@@ -87,68 +87,35 @@
 
   :root[data-theme="dark"],
   .dark {
-    --background: 220 16% 10%;
-    --foreground: 0 0% 98%;
+    --background: 240 10% 3.9%;      /* #0A0A0B */
+    --foreground: 0 0% 98%;          /* #FAFAFA */
 
-    --card: 220 16% 13%;
+    --card: 240 10% 6%;              /* #0F0F11 */
     --card-foreground: 0 0% 98%;
 
-    --popover: 220 16% 13%;
+    --popover: 240 10% 3.9%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 160 38% 63%;
-    --primary-foreground: 220 16% 10%;
+    --primary: 202 52% 66%;          /* #7BB4D4 Ether Blue */
+    --primary-foreground: 240 10% 3.9%;
 
-    --secondary: 220 14% 16%;
-    --secondary-foreground: 0 0% 92%;
+    --secondary: 240 5% 15%;         /* Dark Grey */
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 220 14% 16%;
-    --muted-foreground: 0 0% 70%;
+    --muted: 240 5% 15%;
+    --muted-foreground: 240 5% 65%;
 
-    --accent: 37 100% 60%;
-    --accent-foreground: 220 16% 10%;
+    --accent: 0 74% 88%;             /* #F8C8C8 Soft Blush */
+    --accent-foreground: 240 10% 3.9%;
 
-    --destructive: 15 100% 62%;
+    --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 220 12% 22%;
-    --input: 220 12% 22%;
-    --ring: 160 38% 63%;
+    --border: 240 5% 15%;
+    --input: 240 5% 15%;
+    --ring: 202 52% 66%;
 
-    --sidebar-background: 220 16% 13%;
-    --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 160 38% 63%;
-    --sidebar-primary-foreground: 220 16% 10%;
-    --sidebar-accent: 37 100% 60%;
-    --sidebar-accent-foreground: 220 16% 10%;
-    --sidebar-border: 220 12% 22%;
-    --sidebar-ring: 160 38% 63%;
-
-    --space-1: 0.25rem;
-    --space-2: 0.5rem;
-    --space-3: 0.75rem;
-    --space-4: 1rem;
-    --space-5: 1.25rem;
-    --space-6: 1.5rem;
-    --space-8: 2rem;
-    --space-10: 2.5rem;
-    --space-12: 3rem;
-
-    --text-12: 0.75rem;
-    --text-14: 0.875rem;
-    --text-16: 1rem;
-    --text-20: 1.25rem;
-    --text-24: 1.5rem;
-    --text-32: 2rem;
-    --text-40: 2.5rem;
-    --text-48: 3rem;
-
-    --lh-tight: 1.1;
-    --lh-snug: 1.25;
-    --lh-normal: 1.5;
-
-    --ls-tight: -0.02em;
-    --ls-normal: 0em;
+    --misty-white: 0 0% 100% / 0.05;
   }
 }
 
@@ -252,30 +219,120 @@
   border-radius: 999px;
   background: hsl(var(--primary));
   border: 2px solid hsl(var(--background));
-  box-shadow: 0 0 20px hsla(var(--primary), 0.4);
-  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
+ }
 
 .poi-marker {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+  position: relative;
+}
+
+.poi-marker.marker-favorite {
+  box-shadow:
+    0 8px 30px rgba(0, 0, 0, 0.35),
+    0 0 0 2px rgba(14, 165, 233, 0.22),
+    0 0 18px rgba(14, 165, 233, 0.18);
+  border-color: rgba(14, 165, 233, 0.35);
+}
+
+.marker-match-badge {
+  position: absolute;
+  top: -9px;
+  right: -10px;
+  padding: 2px 5px;
   border-radius: 999px;
-  border: 1.5px solid hsl(var(--background));
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-  background: hsl(var(--primary));
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  font-size: 9px;
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(10, 10, 11, 0.55);
+  color: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.marker-match-badge.marker-match-loading {
+  opacity: 0.8;
+}
+
+.marker-match-badge.marker-match-good {
+  border-color: rgba(74, 222, 128, 0.35);
+  box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.16);
+}
+
+.marker-match-badge.marker-match-ok {
+  border-color: rgba(251, 191, 36, 0.35);
+  box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.14);
+}
+
+.marker-match-badge.marker-match-bad {
+  border-color: rgba(148, 163, 184, 0.30);
+  box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.10);
+}
+
+.marker-wind-arrow {
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  transform: translateX(-50%) rotate(0deg);
+  opacity: 0.0;
+  transition: opacity 250ms ease;
+}
+
+.marker-wind-arrow::before {
+  content: "";
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-right: 2px solid rgba(255, 255, 255, 0.75);
+  border-top: 2px solid rgba(255, 255, 255, 0.75);
+  transform: rotate(45deg);
+}
+
+.marker-wind-arrow.marker-wind-ready {
+  opacity: 0.85;
 }
 
 .poi-marker[data-poi-type="weather-station"] {
   background: hsl(var(--accent));
 }
 
-.poi-marker[data-selected="true"] {
+.cluster-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px; /* Minimum touch target */
+  height: 44px; /* Minimum touch target */
+  border-radius: 999px;
+  color: hsl(var(--foreground));
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(8px);
+}
+
+.cluster-marker:hover {
+  transform: scale(1.05);
+  background: hsla(var(--primary), 0.2);
+  border-color: hsla(var(--primary), 0.4);
+}
+
+.poi-selected {
   transform: scale(1.4);
   box-shadow: 0 8px 24px rgba(0,0,0,0.25);
   z-index: 10;
-  border-color: #FFFFFF;
+  border-color: #FFFFFF !important;
 }
 
 @keyframes fade-in {

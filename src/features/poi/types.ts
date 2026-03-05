@@ -1,11 +1,22 @@
-export type PoiSource = "dataset" | "api";
+export type PoiSource = "dataset" | "api" | "user";
 
-export type PoiType = "refuge" | "emergency_shelter" | "weather_station" | "spot";
+export type PoiType = "refuge" | "emergency_shelter" | "weather_station" | "spot" | "note";
 
 export type LatLng = {
   lat: number;
   lng: number;
 };
+
+export type CurrentWeatherSnapshot = {
+  temperatureC: number;
+  windSpeedKmh: number;
+  windDirectionDeg?: number;
+  precipitationMm?: number;
+  weatherCode?: number;
+  cloudCoverPct?: number;
+};
+
+export type WeatherSnapshot = Partial<CurrentWeatherSnapshot>;
 
 export type Poi = {
   id: string;
@@ -14,12 +25,15 @@ export type Poi = {
   name: string;
   position: LatLng;
   meta?: Record<string, unknown>;
+  createdAt: number;
+  updatedAt: number;
 };
 
 export type IdealWeather = {
   tempMinC?: number;
   tempMaxC?: number;
   windMaxKmh?: number;
+  windDirectionDeg?: number[];
   precipitationMaxMm?: number;
   cloudCoverMaxPct?: number;
 };
@@ -29,25 +43,24 @@ export type PoiNote = {
   poiId: string;
   createdAt: number;
   text: string;
-  photoIds?: string[];
+  photoBlob?: Blob; // Store image data directly for offline
+  weatherSnapshot?: WeatherSnapshot;
+  synced: boolean;
+  syncedFlag: 0 | 1;
 };
 
 export type PoiVisit = {
   id: string;
   poiId: string;
   visitedAt: number;
-  weatherSnapshot?: {
-    temperatureC?: number;
-    windSpeedKmh?: number;
-    precipitationMm?: number;
-    weatherCode?: number;
-  };
+  weatherSnapshot?: WeatherSnapshot;
 };
 
 export type PoiUserOverlay = {
   poiId: string;
   isFavorite?: boolean;
   idealWeather?: IdealWeather;
+  customName?: string;
 };
 
 export type PoiUserState = {
