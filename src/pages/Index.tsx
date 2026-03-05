@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import MapView from "@/components/MapView";
 import SearchBar from "@/components/SearchBar";
-import { HugeiconsIcon, SunCloud02Icon } from "@/components/icons";
+import { HugeiconsIcon } from "@/components/icons";
 import { POI_DATASET } from "@/features/poi/dataset";
 import type { Poi } from "@/features/poi/types";
 import MapHub from "@/components/MapHub";
@@ -182,14 +182,6 @@ const Index = () => {
 
       {/* Top overlay */}
       <div className="absolute top-5 left-5 right-5 z-10 flex items-start gap-3">
-        {/* Logo */}
-        <div className="float-card-sm flex items-center gap-2.5 px-4 py-3 shrink-0">
-          <HugeiconsIcon icon={SunCloud02Icon} size={20} className="text-primary" strokeWidth={1.5} />
-          <span className="text-[15px] font-semibold text-foreground">
-            NavéoMap
-          </span>
-        </div>
-
         {/* Search */}
         <SearchBar onSelect={handleSearchSelect} />
 

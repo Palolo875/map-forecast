@@ -33,6 +33,7 @@ export default function RouteInspector({
   departureTs,
   onDepartureTsChange,
   onClear,
+  useNauticalUnits,
 }: RouteInspectorProps) {
   const title = originLabel && destinationLabel ? `${originLabel} → ${destinationLabel}` : "Trajet";
 

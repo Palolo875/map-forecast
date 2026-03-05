@@ -39,8 +39,8 @@ export function labelWeather(code: number) {
   return "Orage";
 }
 
-export function HubBadge({ variant, children }: { variant: BadgeProps["variant"]; children: React.ReactNode }) {
-  return <div className={cn(badgeVariants({ variant }))}>{children}</div>;
+export function HubBadge({ variant, children }: { variant?: BadgeProps["variant"]; children: React.ReactNode }) {
+  return <div className={cn(badgeVariants({ variant: variant ?? "secondary" }))}>{children}</div>;
 }
 
 export function HubButton({

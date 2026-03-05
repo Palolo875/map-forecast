@@ -84,7 +84,7 @@ export default function POIInspector({ poi, onRequestWeatherAt }: POIInspectorPr
       .find(v => v.weatherSnapshot && Object.keys(v.weatherSnapshot).length > 0);
     
     if (!lastVisitWithWeather) return null;
-    return analyzeTemporalShift(lastVisitWithWeather, currentWeather);
+    return analyzeTemporalShift(lastVisitWithWeather, currentWeather as any);
   }, [currentWeather, visits]);
 
   useEffect(() => {

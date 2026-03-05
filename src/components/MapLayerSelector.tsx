@@ -142,20 +142,20 @@ const MapLayerSelector = ({
                       <div className={`transition-transform duration-500 group-hover:scale-110 ${active ? 'scale-110' : ''}`}>
                         {m.value === "road" && (
                           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="text-slate-600">
-                            <path d="M4 21L12 3L20 21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeJoin="round" />
+                            <path d="M4 21L12 3L20 21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                             <path d="M12 3V21" stroke="currentColor" strokeWidth="1.5" strokeDasharray="3 3" />
                           </svg>
                         )}
                         {m.value === "topo" && (
                           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="text-emerald-700">
-                            <path d="M2 17L7 12L12 17L17 7L22 17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeJoin="round" />
+                            <path d="M2 17L7 12L12 17L17 7L22 17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                             <circle cx="17" cy="7" r="1.5" stroke="currentColor" strokeWidth="1" />
                           </svg>
                         )}
                         {m.value === "satellite" && (
                           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="text-white">
                             <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.5" />
-                            <path d="M3 15L8 10L13 15L17 11L21 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeJoin="round" />
+                            <path d="M3 15L8 10L13 15L17 11L21 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                             <circle cx="16" cy="7" r="1.5" fill="currentColor" />
                           </svg>
                         )}
@@ -166,7 +166,7 @@ const MapLayerSelector = ({
                       
                       {active && (
                         <div className="absolute top-1 right-1 bg-primary text-primary-foreground rounded-full p-0.5 shadow-sm">
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeJoin="round">
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
                             <polyline points="20 6 9 17 4 12" />
                           </svg>
                         </div>
@@ -214,7 +214,7 @@ const MapLayerSelector = ({
                             {active && (
                               <div className="absolute inset-0 flex items-center justify-center bg-primary/10">
                                 <div className="w-5 h-5 bg-primary rounded-full flex items-center justify-center text-primary-foreground shadow-lg scale-110">
-                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeJoin="round">
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                                     <polyline points="20 6 9 17 4 12" />
                                   </svg>
                                 </div>
