@@ -32,8 +32,7 @@ type ClusterProps = {
   isEmergency: number;
 };
 
-const STYLE_ROAD_LIGHT = "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
-const STYLE_ROAD_DARK = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
+// Style URLs resolved dynamically via resolveStyleUrl()
 
 const DEFAULT_CENTER: [number, number] = [2.35, 48.85];
 const DEFAULT_ZOOM = 5;
@@ -325,16 +324,19 @@ const MapView = ({
       .addTo(map);
   }, []);
 
+  // Store initial style in a ref so we don't recreate the map when style changes
+  const initialStyleRef = useRef(resolveStyleUrl());
+
   useEffect(() => {
     if (!mapContainer.current) return;
 
     const map = new maplibregl.Map({
       container: mapContainer.current,
-      style: STYLE_ROAD_LIGHT,
+      style: initialStyleRef.current,
       center: DEFAULT_CENTER,
       zoom: DEFAULT_ZOOM,
       attributionControl: false,
-      fadeDuration: 300, // Smooth transition between styles
+      fadeDuration: 300,
     });
 
     map.addControl(new maplibregl.NavigationControl({ showCompass: true, showZoom: true }), "bottom-right");
@@ -378,14 +380,14 @@ const MapView = ({
       map.remove();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [placeMarker, onMapClick, refreshPoiMarkers, setMap]);
+  }, []);
 
   useEffect(() => {
     if (!mapRef.current || !ready) return;
     const map = mapRef.current;
     const nextStyle = resolveStyleUrl();
 
-    map.setStyle(nextStyle, { diff: true });
+    map.setStyle(nextStyle);
     map.once("idle", () => setStyleTick((t) => t + 1));
   }, [mapMode, mapTheme, isNight, ready, resolveStyleUrl]);
 
